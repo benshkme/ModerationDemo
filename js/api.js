@@ -95,24 +95,24 @@ const KalturaAPI = (() => {
       params.filter.statusEqual = status;
     }
 
-    return call('entryvendortask', 'list', params);
+    return call('entryVendorTask', 'list', params);
   }
 
   // entryVendorTask.get
   async function taskGet(taskId) {
-    return call('entryvendortask', 'get', { id: taskId });
+    return call('entryVendorTask', 'get', { id: taskId });
   }
 
   // attachmentAsset.getUrl — returns a URL string to download the asset
   async function attachmentGetUrl(assetId) {
-    const data = await call('attachment_attachmentasset', 'getUrl', { id: assetId });
+    const data = await call('attachment_attachmentAsset', 'getUrl', { id: assetId });
     // Returns a plain string URL
     return typeof data === 'string' ? data : null;
   }
 
   // attachmentAsset.list — list attachments for an entry
   async function attachmentList(entryId) {
-    return call('attachment_attachmentasset', 'list', {
+    return call('attachment_attachmentAsset', 'list', {
       filter: {
         objectType: 'KalturaAssetFilter',
         entryIdEqual: entryId,
