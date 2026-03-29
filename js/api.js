@@ -74,7 +74,7 @@ const KalturaAPI = (() => {
     return data;
   }
 
-  // entryVendorTask.list
+  // reach_entryVendorTask.list
   async function taskList({ serviceFeature, status, pageIndex = 1, pageSize = 30 } = {}) {
     const params = {
       filter: {
@@ -95,12 +95,12 @@ const KalturaAPI = (() => {
       params.filter.statusEqual = status;
     }
 
-    return call('entryVendorTask', 'list', params);
+    return call('reach_entryVendorTask', 'list', params);
   }
 
-  // entryVendorTask.get
+  // reach_entryVendorTask.get
   async function taskGet(taskId) {
-    return call('entryVendorTask', 'get', { id: taskId });
+    return call('reach_entryVendorTask', 'get', { id: taskId });
   }
 
   // attachmentAsset.getUrl — returns a URL string to download the asset
