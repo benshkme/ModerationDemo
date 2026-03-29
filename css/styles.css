@@ -126,6 +126,8 @@ header {
 .btn-primary:hover:not(:disabled) { background: #d46b1a; }
 .btn-secondary { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.2); }
 .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,.2); }
+.btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover:not(:disabled) { background: #f3f4f6; }
 .btn-sm { padding: 4px 10px; font-size: 12px; }
 .btn-review { background: var(--kaltura-orange); color: #fff; }
 .btn-review:hover { background: #d46b1a; }

@@ -4,10 +4,12 @@
 
 const TasksTab = (() => {
 
-  let currentPage  = 1;
-  let totalCount   = 0;
-  let lastFilter   = {};
-  const PAGE_SIZE  = 30;
+  let currentPage          = 1;
+  let totalCount           = 0;
+  let lastFilter           = {};
+  let moderationCatalogIds = null; // Set of catalog item IDs for serviceFeature=15 (Moderation)
+  const PAGE_SIZE          = 30;
+  const MODERATION_FEATURE = 15;
 
   // ---- Render shell (called once on first activation) ---------------
 
@@ -84,9 +86,9 @@ const TasksTab = (() => {
         <div class="pagination">
           <span id="tasks-count-label">—</span>
           <div class="paging-btns">
-            <button class="btn btn-secondary btn-sm" id="tasks-prev-btn" disabled>&#8592; Prev</button>
+            <button class="btn btn-outline btn-sm" id="tasks-prev-btn" disabled>&#8592; Prev</button>
             <span id="tasks-page-label" style="padding:0 8px;line-height:28px;font-size:13px;color:var(--text-muted)">Page 1</span>
-            <button class="btn btn-secondary btn-sm" id="tasks-next-btn" disabled>Next &#8594;</button>
+            <button class="btn btn-outline btn-sm" id="tasks-next-btn" disabled>Next &#8594;</button>
           </div>
         </div>
       </div>
@@ -102,6 +104,18 @@ const TasksTab = (() => {
     document.getElementById('tasks-entry-filter').addEventListener('keydown', e => {
       if (e.key === 'Enter') loadTasks(1);
     });
+  }
+
+  // ---- Fetch moderation catalog IDs (once) -------------------------
+
+  async function ensureModerationCatalogIds() {
+    if (moderationCatalogIds !== null) return;
+    try {
+      const result = await KalturaAPI.catalogItemList(MODERATION_FEATURE);
+      moderationCatalogIds = new Set((result?.objects || []).map(i => String(i.id)));
+    } catch {
+      moderationCatalogIds = new Set(); // fail open — no Review buttons shown
+    }
   }
 
   // ---- Load tasks ---------------------------------------------------
@@ -143,7 +157,14 @@ const TasksTab = (() => {
           return;
         }
         catalogItemIds = items.map(i => i.id);
+        // Populate moderationCatalogIds from this fetch when it's the moderation feature
+        if (String(serviceFeature) === String(MODERATION_FEATURE) && moderationCatalogIds === null) {
+          moderationCatalogIds = new Set(catalogItemIds.map(String));
+        }
       }
+
+      // Ensure we know which catalog items are moderation (for the Review button)
+      await ensureModerationCatalogIds();
 
       const filter = { catalogItemIds, status, createdAfter, pageIndex: page, pageSize: PAGE_SIZE };
       const params = buildParams(filter, entryId);
@@ -188,7 +209,8 @@ const TasksTab = (() => {
     tbody.innerHTML = tasks.map(task => {
       const si      = KalturaAPI.taskStatusInfo(task.status);
       const feature = KalturaAPI.serviceFeatureLabel(task.serviceFeature);
-      const isReady = task.status === 2;
+      const isModeration = moderationCatalogIds?.has(String(task.catalogItemId)) ?? false;
+      const isReady      = task.status === 2 && isModeration;
 
       return `<tr>
         <td><code style="font-size:11px">${escapeHtml(task.id)}</code></td>
