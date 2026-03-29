@@ -18,34 +18,47 @@ const TasksTab = (() => {
     panel.innerHTML = `
       <div class="card">
         <div class="card-header">
-          <h2>Entry Vendor Tasks — Moderation</h2>
+          <h2>Entry Vendor Tasks</h2>
           <div class="toolbar">
             <select id="tasks-feature-filter" title="Filter by service feature">
               <option value="">All Features</option>
-              <option value="12" selected>Moderation (12)</option>
+              <option value="11" selected>Moderation (11)</option>
               <option value="1">Captions (1)</option>
               <option value="2">Translation (2)</option>
               <option value="3">Alignment (3)</option>
+              <option value="7">Dubbing (7)</option>
+              <option value="8">Sign Language (8)</option>
+              <option value="10">Live Caption (10)</option>
             </select>
             <select id="tasks-status-filter" title="Filter by status">
               <option value="">All Statuses</option>
-              <option value="3">Ready</option>
-              <option value="2">Processing</option>
+              <option value="2">Ready</option>
+              <option value="3">Processing</option>
               <option value="1">Pending</option>
-              <option value="4">Error</option>
+              <option value="4">Processing Failure</option>
               <option value="5">Aborted</option>
+              <option value="6">Error</option>
               <option value="7">Expired</option>
+              <option value="11">Partial Ready</option>
             </select>
-            <input id="tasks-entry-filter" type="text" placeholder="Entry ID filter…" style="width:160px">
+            <select id="tasks-window-filter" title="Created in last…">
+              <option value="">All time</option>
+              <option value="3600">Last hour</option>
+              <option value="86400" selected>Last 24 hours</option>
+              <option value="604800">Last 7 days</option>
+              <option value="2592000">Last 30 days</option>
+              <option value="31536000">Last year</option>
+            </select>
+            <input id="tasks-entry-filter" type="text" placeholder="Entry ID…" style="width:140px">
             <button class="btn btn-secondary btn-sm" id="tasks-refresh-btn">&#8635; Refresh</button>
           </div>
         </div>
 
         <div id="tasks-alert-area"></div>
 
-        <div class="table-wrap">
+        <div class="table-wrap" style="max-height:calc(100vh - 320px);overflow-y:auto">
           <table id="tasks-table">
-            <thead>
+            <thead style="position:sticky;top:0;z-index:1">
               <tr>
                 <th>Task ID</th>
                 <th>Entry ID</th>
@@ -82,6 +95,7 @@ const TasksTab = (() => {
     document.getElementById('tasks-next-btn').addEventListener('click', () => loadTasks(currentPage + 1));
     document.getElementById('tasks-feature-filter').addEventListener('change', () => loadTasks(1));
     document.getElementById('tasks-status-filter').addEventListener('change', () => loadTasks(1));
+    document.getElementById('tasks-window-filter').addEventListener('change', () => loadTasks(1));
     document.getElementById('tasks-entry-filter').addEventListener('keydown', e => {
       if (e.key === 'Enter') loadTasks(1);
     });
@@ -103,12 +117,17 @@ const TasksTab = (() => {
 
     const serviceFeature = document.getElementById('tasks-feature-filter').value;
     const status         = document.getElementById('tasks-status-filter').value;
+    const windowSecs     = document.getElementById('tasks-window-filter').value;
     const entryId        = document.getElementById('tasks-entry-filter').value.trim();
 
-    lastFilter = { serviceFeature, status };
+    const createdAfter = windowSecs
+      ? Math.floor(Date.now() / 1000) - parseInt(windowSecs, 10)
+      : null;
+
+    lastFilter = { serviceFeature, status, createdAfter };
 
     try {
-      const filter = { serviceFeature, status, pageIndex: page, pageSize: PAGE_SIZE };
+      const filter = { serviceFeature, status, createdAfter, pageIndex: page, pageSize: PAGE_SIZE };
 
       // Inject entryId filter if provided
       const params = buildParams(filter, entryId);
@@ -153,7 +172,7 @@ const TasksTab = (() => {
     tbody.innerHTML = tasks.map(task => {
       const si      = KalturaAPI.taskStatusInfo(task.status);
       const feature = KalturaAPI.serviceFeatureLabel(task.serviceFeature);
-      const isReady = task.status === 3;
+      const isReady = task.status === 2;
 
       return `<tr>
         <td><code style="font-size:11px">${escapeHtml(task.id)}</code></td>

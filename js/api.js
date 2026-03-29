@@ -75,7 +75,7 @@ const KalturaAPI = (() => {
   }
 
   // reach_entryVendorTask.list
-  async function taskList({ serviceFeature, status, pageIndex = 1, pageSize = 30 } = {}) {
+  async function taskList({ serviceFeature, status, createdAfter, entryId, pageIndex = 1, pageSize = 30 } = {}) {
     const params = {
       filter: {
         objectType: 'KalturaEntryVendorTaskFilter',
@@ -88,12 +88,10 @@ const KalturaAPI = (() => {
       },
     };
 
-    if (serviceFeature) {
-      params.filter.serviceFeatureEqual = serviceFeature;
-    }
-    if (status) {
-      params.filter.statusEqual = status;
-    }
+    if (serviceFeature)  params.filter.serviceFeatureEqual        = serviceFeature;
+    if (status)          params.filter.statusEqual                 = status;
+    if (createdAfter)    params.filter.createdAtGreaterThanOrEqual = createdAfter;
+    if (entryId)         params.filter.entryIdEqual                = entryId;
 
     return call('reach_entryVendorTask', 'list', params);
   }
@@ -144,17 +142,17 @@ const KalturaAPI = (() => {
   // ---- Status helpers ----------------------------------------
 
   const TASK_STATUS = {
-    1: { label: 'Pending',            cls: 'pending'    },
-    2: { label: 'Processing',         cls: 'processing' },
-    3: { label: 'Ready',              cls: 'ready'      },
-    4: { label: 'Error',              cls: 'error'      },
-    5: { label: 'Aborted',            cls: 'aborted'    },
-    6: { label: 'Processing Failure', cls: 'error'      },
-    7: { label: 'Expired',            cls: 'expired'    },
-    8: { label: 'Scheduled',          cls: 'pending'    },
-    9: { label: 'Processing Batch',   cls: 'processing' },
-    10: { label: 'Waiting for Params', cls: 'pending'   },
-    11: { label: 'Partial Ready',     cls: 'partial'    },
+    1:  { label: 'Pending',            cls: 'pending'    },
+    2:  { label: 'Ready',              cls: 'ready'      },
+    3:  { label: 'Processing',         cls: 'processing' },
+    4:  { label: 'Processing Failure', cls: 'error'      },
+    5:  { label: 'Aborted',            cls: 'aborted'    },
+    6:  { label: 'Error',              cls: 'error'      },
+    7:  { label: 'Expired',            cls: 'expired'    },
+    8:  { label: 'Scheduled',          cls: 'pending'    },
+    9:  { label: 'Processing Batch',   cls: 'processing' },
+    10: { label: 'Waiting for Params', cls: 'pending'    },
+    11: { label: 'Partial Ready',      cls: 'partial'    },
   };
 
   const SERVICE_FEATURE = {
@@ -164,11 +162,11 @@ const KalturaAPI = (() => {
     4:  'Audio Description',
     5:  'Chapter',
     6:  'Filler Removal',
-    7:  'Sign Language',
-    8:  'Dubbing',
+    7:  'Dubbing',
+    8:  'Sign Language',
+    9:  'Extended Audio Description',
     10: 'Live Caption',
-    11: 'Extended Audio Description',
-    12: 'Moderation',
+    11: 'Moderation',
   };
 
   function taskStatusInfo(status) {
