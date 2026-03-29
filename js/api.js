@@ -142,17 +142,15 @@ const KalturaAPI = (() => {
   // ---- Status helpers ----------------------------------------
 
   const TASK_STATUS = {
-    1:  { label: 'Pending',            cls: 'pending'    },
-    2:  { label: 'Ready',              cls: 'ready'      },
-    3:  { label: 'Processing',         cls: 'processing' },
-    4:  { label: 'Processing Failure', cls: 'error'      },
-    5:  { label: 'Aborted',            cls: 'aborted'    },
-    6:  { label: 'Error',              cls: 'error'      },
-    7:  { label: 'Expired',            cls: 'expired'    },
-    8:  { label: 'Scheduled',          cls: 'pending'    },
-    9:  { label: 'Processing Batch',   cls: 'processing' },
-    10: { label: 'Waiting for Params', cls: 'pending'    },
-    11: { label: 'Partial Ready',      cls: 'partial'    },
+    1: { label: 'Pending',              cls: 'pending'    },
+    2: { label: 'Ready',                cls: 'ready'      },
+    3: { label: 'Processing',           cls: 'processing' },
+    4: { label: 'Pending Moderation',   cls: 'pending'    },
+    5: { label: 'Rejected',             cls: 'error'      },
+    6: { label: 'Error',                cls: 'error'      },
+    7: { label: 'Aborted',              cls: 'aborted'    },
+    8: { label: 'Pending Entry Ready',  cls: 'pending'    },
+    9: { label: 'Scheduled',            cls: 'pending'    },
   };
 
   const SERVICE_FEATURE = {
@@ -160,13 +158,24 @@ const KalturaAPI = (() => {
     2:  'Translation',
     3:  'Alignment',
     4:  'Audio Description',
-    5:  'Chapter',
-    6:  'Filler Removal',
+    5:  'Chaptering',
+    6:  'Intelligent Tagging',
     7:  'Dubbing',
-    8:  'Sign Language',
+    8:  'Live Caption',
     9:  'Extended Audio Description',
-    10: 'Live Caption',
-    11: 'Moderation',
+    10: 'Clips',
+    11: 'Live Translation',
+    12: 'Quiz',
+    13: 'Summary',
+    14: 'Video Analysis',
+    15: 'Moderation',
+    16: 'Metadata Enrichment',
+    17: 'Sentiment Analysis',
+    18: 'Document Enrichment',
+    19: 'Sign Language',
+    20: 'Speech to Video',
+    21: 'Immersive Agent Call',
+    22: 'Immersive Agent Chat',
   };
 
   function taskStatusInfo(status) {

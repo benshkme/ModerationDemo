@@ -22,24 +22,27 @@ const TasksTab = (() => {
           <div class="toolbar">
             <select id="tasks-feature-filter" title="Filter by service feature">
               <option value="">All Features</option>
-              <option value="11" selected>Moderation (11)</option>
+              <option value="15" selected>Moderation (15)</option>
               <option value="1">Captions (1)</option>
               <option value="2">Translation (2)</option>
               <option value="3">Alignment (3)</option>
               <option value="7">Dubbing (7)</option>
-              <option value="8">Sign Language (8)</option>
-              <option value="10">Live Caption (10)</option>
+              <option value="8">Live Caption (8)</option>
+              <option value="14">Video Analysis (14)</option>
+              <option value="17">Sentiment Analysis (17)</option>
+              <option value="19">Sign Language (19)</option>
             </select>
             <select id="tasks-status-filter" title="Filter by status">
               <option value="">All Statuses</option>
               <option value="2">Ready</option>
               <option value="3">Processing</option>
               <option value="1">Pending</option>
-              <option value="4">Processing Failure</option>
-              <option value="5">Aborted</option>
+              <option value="4">Pending Moderation</option>
+              <option value="5">Rejected</option>
               <option value="6">Error</option>
-              <option value="7">Expired</option>
-              <option value="11">Partial Ready</option>
+              <option value="7">Aborted</option>
+              <option value="8">Pending Entry Ready</option>
+              <option value="9">Scheduled</option>
             </select>
             <select id="tasks-window-filter" title="Created in last…">
               <option value="">All time</option>
