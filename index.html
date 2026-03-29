@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaltura Moderation Demo</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- ===================== HEADER ===================== -->
+  <header>
+    <div class="header-inner">
+
+      <div class="logo">
+        <div class="logo-mark">K</div>
+        <div>
+          <div class="logo-text">Kaltura</div>
+          <div class="logo-sub">Moderation Demo</div>
+        </div>
+      </div>
+
+      <div class="connection-bar">
+        <input
+          id="ks-input"
+          type="password"
+          placeholder="Kaltura Session (KS)…"
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <input
+          id="service-url"
+          type="text"
+          value="https://www.kaltura.com"
+          placeholder="Service URL"
+          autocomplete="off"
+        >
+        <input
+          id="uiconf-id"
+          type="text"
+          placeholder="Player uiconf ID"
+          autocomplete="off"
+        >
+        <button class="btn btn-primary" id="connect-btn">Connect</button>
+
+        <div class="status-badge">
+          <span class="status-dot" id="status-dot"></span>
+          <span id="status-text">Not connected</span>
+        </div>
+
+        <span id="partner-info" style="font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap"></span>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ===================== MAIN ===================== -->
+  <div class="main-container">
+
+    <!-- Tab navigation -->
+    <div class="tabs-nav" style="margin-top:20px">
+      <button class="tab-btn active" data-tab="policies">Policies</button>
+      <button class="tab-btn" data-tab="tasks">Entry Vendor Tasks</button>
+      <button class="tab-btn" data-tab="review">Review</button>
+    </div>
+
+    <!-- ===== TAB 1: Policies ===== -->
+    <div id="tab-policies" class="tab-panel active">
+      <div class="card">
+        <div class="card-body policies-coming-soon">
+          <div class="coming-soon-icon">🛡️</div>
+          <div class="coming-soon-title">Moderation Policies</div>
+          <p class="coming-soon-desc">
+            This section will provide full CRUD management for Kaltura Reach moderation
+            policies and their rules — including thresholds, detection categories,
+            and automated actions.
+          </p>
+          <ul class="feature-list">
+            <li>📋 &nbsp;List all moderation reach profiles &amp; policies</li>
+            <li>➕ &nbsp;Create new moderation policies</li>
+            <li>✏️ &nbsp;Edit policy rules (categories, thresholds, actions)</li>
+            <li>🗑️ &nbsp;Delete policies</li>
+            <li>🔗 &nbsp;Associate policies with entries or categories</li>
+          </ul>
+          <p style="margin-top:24px;font-size:12px;color:var(--text-muted)">
+            Coming soon — navigate to <strong>Entry Vendor Tasks</strong> to get started.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB 2: Entry Vendor Tasks ===== -->
+    <div id="tab-tasks" class="tab-panel">
+      <!-- Populated dynamically by tab-tasks.js -->
+      <div class="empty-state" style="padding:80px 20px" id="tasks-placeholder">
+        <div class="icon">🔌</div>
+        <strong>Not connected</strong>
+        <p>Enter a Kaltura Session (KS) and click Connect to load tasks.</p>
+      </div>
+    </div>
+
+    <!-- ===== TAB 3: Review ===== -->
+    <div id="tab-review" class="tab-panel">
+      <!-- Populated dynamically by tab-review.js -->
+      <div class="empty-state" style="padding:80px 20px" id="review-placeholder">
+        <div class="icon">🔌</div>
+        <strong>Not connected</strong>
+        <p>Enter a Kaltura Session (KS), connect, then click <strong>Review</strong> on a completed task.</p>
+      </div>
+    </div>
+
+  </div><!-- /.main-container -->
+
+  <!-- ===================== SCRIPTS ===================== -->
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/tab-policies.js"></script>
+  <script src="js/tab-tasks.js"></script>
+  <script src="js/tab-review.js"></script>
+
+</body>
+</html>
