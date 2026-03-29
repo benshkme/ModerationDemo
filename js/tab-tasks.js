@@ -130,9 +130,22 @@ const TasksTab = (() => {
     lastFilter = { serviceFeature, status, createdAfter };
 
     try {
-      const filter = { serviceFeature, status, createdAfter, pageIndex: page, pageSize: PAGE_SIZE };
+      // serviceFeature is not a direct filter on entryVendorTask —
+      // resolve it to catalog item IDs first, then filter by those IDs.
+      let catalogItemIds = null;
+      if (serviceFeature) {
+        const catalogResult = await KalturaAPI.catalogItemList(serviceFeature);
+        const items = catalogResult?.objects || [];
+        if (!items.length) {
+          renderRows([]);
+          totalCount = 0;
+          updatePagination();
+          return;
+        }
+        catalogItemIds = items.map(i => i.id);
+      }
 
-      // Inject entryId filter if provided
+      const filter = { catalogItemIds, status, createdAfter, pageIndex: page, pageSize: PAGE_SIZE };
       const params = buildParams(filter, entryId);
       const result = await KalturaAPI.taskList(params);
 

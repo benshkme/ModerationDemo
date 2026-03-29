@@ -75,7 +75,9 @@ const KalturaAPI = (() => {
   }
 
   // reach_entryVendorTask.list
-  async function taskList({ serviceFeature, status, createdAfter, entryId, pageIndex = 1, pageSize = 30 } = {}) {
+  // Note: serviceFeature is NOT a filterable field on entryVendorTask.
+  // Callers must resolve it to catalogItemIds first via catalogItemList().
+  async function taskList({ catalogItemIds, status, createdAfter, entryId, pageIndex = 1, pageSize = 30 } = {}) {
     const params = {
       filter: {
         objectType: 'KalturaEntryVendorTaskFilter',
@@ -88,12 +90,27 @@ const KalturaAPI = (() => {
       },
     };
 
-    if (serviceFeature)  params.filter.serviceFeatureEqual        = serviceFeature;
-    if (status)          params.filter.statusEqual                 = status;
-    if (createdAfter)    params.filter.createdAtGreaterThanOrEqual = createdAfter;
-    if (entryId)         params.filter.entryIdEqual                = entryId;
+    if (catalogItemIds?.length) params.filter.catalogItemIdIn           = catalogItemIds.join(',');
+    if (status)                 params.filter.statusEqual                = status;
+    if (createdAfter)           params.filter.createdAtGreaterThanOrEqual = createdAfter;
+    if (entryId)                params.filter.entryIdEqual               = entryId;
 
     return call('reach_entryVendorTask', 'list', params);
+  }
+
+  // reach_vendorCatalogItem.list — get catalog items by service feature
+  async function catalogItemList(serviceFeature) {
+    return call('reach_vendorCatalogItem', 'list', {
+      filter: {
+        objectType: 'KalturaVendorCatalogItemFilter',
+        serviceFeatureEqual: serviceFeature,
+      },
+      pager: {
+        objectType: 'KalturaFilterPager',
+        pageSize: 500,
+        pageIndex: 1,
+      },
+    });
   }
 
   // reach_entryVendorTask.get
@@ -191,6 +208,7 @@ const KalturaAPI = (() => {
     sessionGet,
     taskList,
     taskGet,
+    catalogItemList,
     attachmentGetUrl,
     attachmentList,
     entryGet,
