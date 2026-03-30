@@ -95,6 +95,13 @@ const KalturaAPI = (() => {
     if (createdAfter)           params.filter.createdAtGreaterThanOrEqual = createdAfter;
     if (entryId)                params.filter.entryIdEqual               = entryId;
 
+    // Request taskJobData explicitly — it is omitted from list responses by default
+    params.responseProfile = {
+      objectType: 'KalturaDetachedResponseProfile',
+      type: 1, // INCLUDE_FIELDS
+      fields: 'id,entryId,status,serviceFeature,catalogItemId,createdAt,taskJobData,errDescription',
+    };
+
     return call('reach_entryVendorTask', 'list', params);
   }
 
