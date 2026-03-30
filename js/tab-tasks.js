@@ -344,15 +344,24 @@ const TasksTab = (() => {
       showAlert('Connect with a valid KS first.', 'info');
       return;
     }
-    await ensureModerationCatalogIds();
-    if (!moderationCatalogItems || !moderationCatalogItems.length) {
-      showAlert('No moderation catalog items found for this account.', 'error');
+
+    // Always fetch fresh — avoids stale cache from loadTasks partial initialisation
+    let catalogItems;
+    try {
+      const result = await KalturaAPI.catalogItemList(MODERATION_FEATURE);
+      catalogItems = result?.objects || [];
+    } catch (err) {
+      showAlert(`Failed to load moderation catalog items: ${err.message}`, 'error');
+      return;
+    }
+    if (!catalogItems.length) {
+      showAlert('No moderation catalog items (serviceFeature=15) found for this account.', 'error');
       return;
     }
     // Remove any existing modal
     document.getElementById('order-modal-overlay')?.remove();
 
-    const catalogOptions = moderationCatalogItems.map(item =>
+    const catalogOptions = catalogItems.map(item =>
       `<option value="${escapeHtml(String(item.id))}">${escapeHtml(item.name || 'Moderation')} (ID: ${escapeHtml(String(item.id))})</option>`
     ).join('');
 
@@ -368,11 +377,11 @@ const TasksTab = (() => {
         <div class="modal-body">
           <div id="modal-alert-area"></div>
 
-          ${moderationCatalogItems.length > 1 ? `
+          ${catalogItems.length > 1 ? `
           <div class="form-group">
             <label class="form-label">Catalog Item</label>
             <select class="form-input" id="modal-catalog-select">${catalogOptions}</select>
-          </div>` : `<input type="hidden" id="modal-catalog-select" value="${escapeHtml(String(moderationCatalogItems[0].id))}">`}
+          </div>` : `<input type="hidden" id="modal-catalog-select" value="${escapeHtml(String(catalogItems[0].id))}">`}
 
           <div class="form-group">
             <label class="form-label">Entry (video)</label>

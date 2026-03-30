@@ -126,15 +126,8 @@ const KalturaAPI = (() => {
   // reach_vendorCatalogItem.list — get catalog items by service feature
   async function catalogItemList(serviceFeature) {
     return call('reach_vendorCatalogItem', 'list', {
-      filter: {
-        objectType: 'KalturaVendorCatalogItemFilter',
-        serviceFeatureEqual: serviceFeature,
-      },
-      pager: {
-        objectType: 'KalturaFilterPager',
-        pageSize: 500,
-        pageIndex: 1,
-      },
+      filter: { serviceFeatureEqual: serviceFeature },
+      pager:  { objectType: 'KalturaFilterPager', pageSize: 500, pageIndex: 1 },
     });
   }
 
