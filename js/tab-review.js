@@ -4,7 +4,8 @@
 
 const ReviewTab = (() => {
 
-  let _playerBaseSrc = null; // base URL without startTime/autoPlay — rebuilt on every seek
+  let _kalturaPlayer = null;  // KalturaPlayer instance (direct JS API, not iframe)
+  let _scriptKey     = null;  // "{partnerId}/{uiconfId}" of the currently loaded script
 
   // ---- Render shell ------------------------------------------------
 
@@ -84,8 +85,8 @@ const ReviewTab = (() => {
     document.getElementById('review-results-body').innerHTML = '';
     document.getElementById('review-severity-badge').innerHTML = '';
 
-    // Embed player immediately (doesn't need task data)
-    embedPlayer(entryId);
+    // Start player load concurrently with task data fetch
+    embedPlayer(entryId).catch(e => console.warn('[ReviewTab] embedPlayer:', e));
 
     try {
       const task = await KalturaAPI.taskGet(taskId);
@@ -298,9 +299,9 @@ const ReviewTab = (() => {
       : `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
   }
 
-  // ---- Player embed -----------------------------------------------
+  // ---- Player embed (direct JS API — no iframe) -------------------
 
-  function embedPlayer(entryId) {
+  async function embedPlayer(entryId) {
     const partnerId = AppState.partnerId;
     const uiconfId  = AppState.uiconfId;
     const wrap      = document.getElementById('player-wrap');
@@ -339,18 +340,94 @@ const ReviewTab = (() => {
       return;
     }
 
-    // Store base URL (no startTime/autoPlay) so seekPlayer can rebuild cleanly
-    _playerBaseSrc = `https://cdnapisec.kaltura.com/p/${partnerId}/embedPlaykitJs/uiconf_id/${uiconfId}?iframeembed=true&entry_id=${entryId}`;
+    // Destroy previous player instance if any
+    if (_kalturaPlayer) {
+      try { _kalturaPlayer.destroy(); } catch {}
+      _kalturaPlayer = null;
+    }
 
-    const src = `${_playerBaseSrc}&flashvars[autoPlay]=true&flashvars[playbackConfig.startTime]=0`;
+    // Container div (direct embed — no iframe)
+    wrap.innerHTML = `
+      <div id="kp-container" style="width:100%;height:100%"></div>
+      <div id="kp-loading" class="player-placeholder">
+        <span class="spinner" style="width:28px;height:28px;border-width:3px"></span>
+        <span>Loading player…</span>
+      </div>`;
 
-    wrap.innerHTML = `<iframe
-      id="kaltura-player-iframe"
-      src="${escapeHtml(src)}"
-      allowfullscreen
-      allow="autoplay; encrypted-media"
-      title="Kaltura Player — ${escapeHtml(entryId)}"
-    ></iframe>`;
+    // Load PlayKit script once per partnerId/uiconfId combination
+    const scriptKey = `${partnerId}/${uiconfId}`;
+    if (_scriptKey !== scriptKey) {
+      try {
+        await loadScript(
+          `https://cdnapisec.kaltura.com/p/${partnerId}/embedPlaykitJs/uiconf_id/${uiconfId}`,
+          'kp-script'
+        );
+        _scriptKey = scriptKey;
+      } catch (e) {
+        wrap.innerHTML = `<div class="player-placeholder">
+          <span style="font-size:28px">⚠</span>
+          <span>Failed to load player script.</span>
+        </div>`;
+        console.error('[ReviewTab] Script load failed:', e);
+        return;
+      }
+    }
+
+    const loadingEl = document.getElementById('kp-loading');
+    if (loadingEl) loadingEl.remove();
+
+    if (typeof KalturaPlayer === 'undefined') {
+      wrap.innerHTML = `<div class="player-placeholder">
+        <span style="font-size:28px">⚠</span>
+        <span>KalturaPlayer not available. Check the uiconf ID.</span>
+      </div>`;
+      return;
+    }
+
+    try {
+      _kalturaPlayer = KalturaPlayer.setup({
+        targetId: 'kp-container',
+        provider: {
+          partnerId: parseInt(partnerId, 10),
+          uiConfId:  parseInt(uiconfId,  10),
+        },
+        playback: { autoPlay: true },
+      });
+      await _kalturaPlayer.loadMedia({ entryId });
+    } catch (e) {
+      wrap.innerHTML = `<div class="player-placeholder">
+        <span style="font-size:28px">⚠</span>
+        <span>Player error: ${escapeHtml(e.message || String(e))}</span>
+      </div>`;
+      console.error('[ReviewTab] Player setup error:', e);
+    }
+  }
+
+  // ---- Seek player to a timestamp (direct JS API) -----------------
+
+  function seekPlayer(seconds) {
+    if (!_kalturaPlayer) return;
+    try {
+      _kalturaPlayer.currentTime = seconds;
+      _kalturaPlayer.play();
+    } catch (e) {
+      console.warn('[ReviewTab] seekPlayer failed:', e);
+    }
+  }
+
+  // ---- Dynamic script loader --------------------------------------
+
+  function loadScript(src, id) {
+    return new Promise((resolve, reject) => {
+      const existing = document.getElementById(id);
+      if (existing) existing.remove();
+      const s = document.createElement('script');
+      s.id  = id;
+      s.src = src;
+      s.onload  = resolve;
+      s.onerror = () => reject(new Error(`Script load failed: ${src}`));
+      document.head.appendChild(s);
+    });
   }
 
   // ---- Alert helpers -----------------------------------------------
