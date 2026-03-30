@@ -582,6 +582,17 @@ details summary:hover { color: var(--text); }
   gap: 8px;
 }
 
+/* Inline expandable compliance in the task list table */
+.compliance-expand > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+.compliance-expand > summary::-webkit-details-marker { display: none; }
+
 .compliance-badge {
   display: inline-flex;
   align-items: center;

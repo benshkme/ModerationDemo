@@ -210,19 +210,14 @@ const TasksTab = (() => {
       return;
     }
 
-    const moderationTaskIds = tasks
-      .filter(t => moderationCatalogIds?.has(String(t.catalogItemId)))
-      .map(t => t.id);
-
     tbody.innerHTML = tasks.map(task => {
       const si      = KalturaAPI.taskStatusInfo(task.status);
       const feature = KalturaAPI.serviceFeatureLabel(task.serviceFeature);
       const isModeration = moderationCatalogIds?.has(String(task.catalogItemId)) ?? false;
       const isReady      = task.status === 2 && isModeration;
 
-      // Compliance data is not in the list response; will be fetched via multi-request
       const complianceHtml = isModeration
-        ? '<span class="spinner" style="width:12px;height:12px;border-width:2px"></span>'
+        ? renderCompliance(task)
         : '<span style="color:var(--text-muted);font-size:12px">—</span>';
 
       return `<tr>
@@ -251,37 +246,52 @@ const TasksTab = (() => {
       </tr>`;
     }).join('');
 
-    // Fetch taskJobData for moderation tasks in the background
-    if (moderationTaskIds.length) fetchAndRenderCompliance(moderationTaskIds);
   }
 
   // ---- Moderation compliance cell ----------------------------------
+  // summary format: { "policyId": { score: number, comply: boolean }, ... }
 
   function renderCompliance(task) {
     const raw = task.taskJobData?.moderationOutputJson;
     if (!raw) return '<span style="color:var(--text-muted);font-size:12px">—</span>';
     try {
       const report  = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      const complies = report?.summary?.complies;
-      if (complies === true)  return '<span class="pill pill-ready">Compliant</span>';
-      if (complies === false) return '<span class="pill pill-error">Non-Compliant</span>';
-    } catch { /* fall through */ }
-    return '<span style="color:var(--text-muted);font-size:12px">—</span>';
+      const summary = report?.summary;
+      if (!summary || typeof summary !== 'object') return '<span style="color:var(--text-muted);font-size:12px">—</span>';
+
+      const entries = Object.entries(summary); // [['policyId', {score, comply}], ...]
+      if (!entries.length) return '<span style="color:var(--text-muted);font-size:12px">—</span>';
+
+      if (entries.length === 1) {
+        const [policyId, result] = entries[0];
+        return compliancePill(result.comply, result.score, policyId);
+      }
+
+      // Multiple policies — overall = Non-Compliant if any fails
+      const overallComply = entries.every(([, v]) => v.comply === true);
+      const rows = entries.map(([policyId, result]) =>
+        `<div style="padding:3px 0;display:flex;align-items:center;gap:6px;white-space:nowrap">
+           <span style="font-size:11px;color:var(--text-muted)">Policy ${escapeHtml(policyId)}:</span>
+           ${compliancePill(result.comply, result.score)}
+         </div>`
+      ).join('');
+
+      return `<details class="compliance-expand">
+        <summary>${compliancePill(overallComply)}
+          <span style="font-size:11px;color:var(--text-muted);margin-left:4px">${entries.length} policies</span>
+        </summary>
+        <div style="padding:4px 0 2px">${rows}</div>
+      </details>`;
+    } catch {
+      return '<span style="color:var(--text-muted);font-size:12px">—</span>';
+    }
   }
 
-  // ---- Fetch full task details for compliance column (background) --
-
-  async function fetchAndRenderCompliance(taskIds) {
-    try {
-      const results = await KalturaAPI.taskGetMulti(taskIds);
-      for (const task of results) {
-        if (!task || task.objectType === 'KalturaAPIException') continue;
-        const cell = document.querySelector(`[data-compliance-id="${task.id}"]`);
-        if (cell) cell.innerHTML = renderCompliance(task);
-      }
-    } catch (e) {
-      console.warn('[TasksTab] compliance fetch failed:', e);
-    }
+  function compliancePill(comply, score, policyId) {
+    const label    = comply ? 'Compliant' : 'Non-Compliant';
+    const cls      = comply ? 'pill-ready' : 'pill-error';
+    const scoreStr = score != null ? ` · ${Math.round(score)}%` : '';
+    return `<span class="pill ${cls}" style="font-size:11px">${label}${scoreStr}</span>`;
   }
 
   // ---- Pagination ---------------------------------------------------
