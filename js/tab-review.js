@@ -86,13 +86,9 @@ const ReviewTab = (() => {
     embedPlayer(entryId);
 
     try {
-      // 1. Fetch full task details
       const task = await KalturaAPI.taskGet(taskId);
       renderMetaCard(task);
-
-      // 2. Fetch moderation report
-      await loadModerationReport(task);
-
+      loadModerationReport(task);
     } catch (err) {
       document.getElementById('review-meta-body').innerHTML =
         `<div class="alert alert-error">Error loading task: ${escapeHtml(err.message)}</div>`;
@@ -118,9 +114,6 @@ const ReviewTab = (() => {
         <div><strong>Vendor Partner ID:</strong> ${escapeHtml(task.vendorPartnerId || '—')}</div>
         <div><strong>Created:</strong> ${formatDate(task.createdAt)}</div>
         <div><strong>Updated:</strong> ${formatDate(task.updatedAt)}</div>
-        ${task.outputObjectId
-          ? `<div><strong>Output Asset ID:</strong> <code style="font-size:11px">${escapeHtml(task.outputObjectId)}</code></div>`
-          : ''}
         ${task.errDescription
           ? `<div><strong>Error:</strong> <span style="color:var(--red)">${escapeHtml(task.errDescription)}</span></div>`
           : ''}
@@ -128,23 +121,17 @@ const ReviewTab = (() => {
     `;
   }
 
-  // ---- Load moderation report --------------------------------------
+  // ---- Load moderation report (from taskJobData) ------------------
 
-  async function loadModerationReport(task) {
+  function loadModerationReport(task) {
     const resultsBody   = document.getElementById('review-results-body');
     const severityBadge = document.getElementById('review-severity-badge');
 
-    resultsBody.innerHTML =
-      `<div style="text-align:center;padding:20px"><span class="spinner"></span> Fetching report…</div>`;
+    const taskJobData = task.taskJobData || null;
 
-    // Primary source: taskJobData field on the entryVendorTask
-    const reportData = task.taskJobData || null;
-
-    if (!reportData) {
+    if (!taskJobData) {
       resultsBody.innerHTML = `
-        <div class="alert alert-info">
-          No moderation report found (taskJobData is empty). The job may still be processing.
-        </div>
+        <div class="alert alert-info">No taskJobData found on this task.</div>
         <details style="margin-top:12px">
           <summary>Raw task object</summary>
           <pre class="json-viewer">${escapeHtml(JSON.stringify(task, null, 2))}</pre>
@@ -152,171 +139,165 @@ const ReviewTab = (() => {
       return;
     }
 
-    renderReport(reportData, severityBadge, resultsBody);
+    // Parse moderationOutputJson — may be a JSON string or already an object
+    const raw = taskJobData.moderationOutputJson;
+    let report = null;
+    if (raw) {
+      try { report = typeof raw === 'string' ? JSON.parse(raw) : raw; }
+      catch { /* fall through to raw display */ }
+    }
+
+    if (!report) {
+      resultsBody.innerHTML = `
+        <div class="alert alert-info">No moderationOutputJson found in taskJobData.</div>
+        <details style="margin-top:12px">
+          <summary>Raw taskJobData</summary>
+          <pre class="json-viewer">${escapeHtml(JSON.stringify(taskJobData, null, 2))}</pre>
+        </details>`;
+      return;
+    }
+
+    renderKalturaModerationReport(task, taskJobData, report, severityBadge, resultsBody);
   }
 
-  // ---- Render parsed moderation report ----------------------------
+  // ---- Render Kaltura moderation report ---------------------------
 
-  function renderReport(report, severityBadge, container) {
-    // Try to detect common output schemas
-    const severity = detectSeverity(report);
-    const labels   = extractLabels(report);
+  function renderKalturaModerationReport(task, taskJobData, report, severityBadge, container) {
+    const violations = report.violations || [];
+    const summary    = report.summary    || {};
 
-    // Severity badge
-    if (severity) {
-      severityBadge.innerHTML = `
-        <span class="severity-badge severity-${severity}">
-          ${severity} SEVERITY
-        </span>`;
+    // Policy number: try common field names
+    const policyId = taskJobData.reachProfileId
+      || taskJobData.policyId
+      || task.reachProfileId
+      || '—';
+
+    // Compliance badge
+    const complies = summary.complies;
+    if (complies !== undefined) {
+      severityBadge.innerHTML = complies
+        ? `<span class="compliance-badge comply">&#10003; Complies</span>`
+        : `<span class="compliance-badge no-comply">&#10007; Does Not Comply</span>`;
+    }
+
+    // Group violations by rule id
+    const byRule = new Map();
+    for (const v of violations) {
+      const key = String(v.id ?? v.rule);
+      if (!byRule.has(key)) {
+        byRule.set(key, { id: v.id, rule: v.rule, severity: v.severity, items: [] });
+      }
+      byRule.get(key).items.push(v);
     }
 
     let html = '';
 
-    if (labels.length > 0) {
-      html += `<div style="margin-bottom:8px;font-size:12px;color:var(--text-muted)">
-        ${labels.length} moderation label(s) detected
+    // ---- Policy + totals header
+    html += `
+      <div class="report-header">
+        <div class="report-header-row">
+          <span><strong>Policy:</strong> #${escapeHtml(String(policyId))}</span>
+          <span style="color:var(--text-muted);font-size:12px">${violations.length} violation${violations.length !== 1 ? 's' : ''} · ${byRule.size} rule${byRule.size !== 1 ? 's' : ''}</span>
+        </div>
       </div>`;
-      html += labels.map(lbl => renderLabelCard(lbl)).join('');
+
+    // ---- Violations grouped by rule
+    if (byRule.size === 0) {
+      html += `<div class="alert alert-success" style="margin-top:12px">No violations detected.</div>`;
     } else {
-      html += `<div class="alert alert-success">No moderation labels detected.</div>`;
+      html += `<div class="rules-list">`;
+      for (const [, rd] of byRule) {
+        const sev       = rd.severity ?? 0;
+        const sevClass  = sev >= 80 ? 'sev-high' : sev >= 60 ? 'sev-med' : 'sev-low';
+        const ruleLabel = decodeEntities(rd.rule || `Rule ${rd.id}`);
+
+        html += `
+          <details class="rule-block">
+            <summary class="rule-summary">
+              <span class="sev-dot ${sevClass}" title="Severity ${sev}"></span>
+              <span class="rule-name">${escapeHtml(ruleLabel)}</span>
+              <span class="rule-pill">${rd.items.length}</span>
+            </summary>
+            <div class="violations-list">
+              ${rd.items.map(v => `
+                <div class="violation-row">
+                  <span class="vio-reason">${escapeHtml(decodeEntities(v.reason || ''))}</span>
+                  <button class="ts-btn" data-ts="${v.start_time ?? 0}"
+                    title="Jump to ${secsToTimecode(v.start_time)}">${secsToTimecode(v.start_time)}</button>
+                </div>`).join('')}
+            </div>
+          </details>`;
+      }
+      html += `</div>`;
     }
 
-    // Raw JSON viewer (collapsible)
+    // ---- Summary
     html += `
-      <details style="margin-top:16px">
-        <summary>Raw report JSON</summary>
+      <div class="report-summary">
+        <div class="report-summary-title">Summary</div>
+        <div class="result-meta">
+          ${summary.score !== undefined
+            ? `<div><strong>Score:</strong> ${escapeHtml(String(summary.score))}</div>`
+            : ''}
+          <div><strong>Complies with policy:</strong>
+            <span style="font-weight:700;${complies ? 'color:var(--green)' : 'color:var(--red)'}">
+              ${complies === true ? '&#10003; Yes' : complies === false ? '&#10007; No' : '—'}
+            </span>
+          </div>
+        </div>
+      </div>`;
+
+    // ---- Raw JSON (collapsible)
+    html += `
+      <details style="margin-top:14px">
+        <summary>Raw moderationOutputJson</summary>
         <pre class="json-viewer">${escapeHtml(JSON.stringify(report, null, 2))}</pre>
       </details>`;
 
     container.innerHTML = html;
+
+    // Wire timestamp buttons — click seeks the player
+    container.querySelectorAll('.ts-btn').forEach(btn => {
+      btn.addEventListener('click', () => seekPlayer(parseFloat(btn.dataset.ts)));
+    });
   }
 
-  function renderLabelCard(lbl) {
-    const pct        = Math.round((lbl.confidence || 0) * 100);
-    const barClass   = pct >= 70 ? 'high' : pct >= 40 ? 'medium' : 'low';
-    const segmentsHtml = lbl.segments && lbl.segments.length
-      ? `<ul class="segments-list">
-           ${lbl.segments.map(s => `
-             <li class="segment-item">
-               <span class="segment-time">${escapeHtml(s.start || s.startTimestamp || s.startTimeMs || '?')}</span>
-               <span>→</span>
-               <span class="segment-time">${escapeHtml(s.end || s.endTimestamp || s.endTimeMs || '?')}</span>
-               ${s.confidence != null ? `<span style="margin-left:auto">${Math.round(s.confidence*100)}%</span>` : ''}
-             </li>`).join('')}
-         </ul>`
-      : '';
+  // ---- Seek player to a timestamp ---------------------------------
 
-    return `
-      <div class="label-card">
-        <div class="label-name">
-          <span>${escapeHtml(lbl.name)}</span>
-          <span style="font-weight:400;font-size:12px;color:var(--text-muted)">${pct}%</span>
-        </div>
-        <div class="confidence-bar-wrap">
-          <div class="confidence-bar ${barClass}" style="width:${pct}%"></div>
-        </div>
-        ${segmentsHtml}
-      </div>`;
+  function seekPlayer(seconds) {
+    const iframe = document.querySelector('#player-wrap iframe');
+    if (!iframe) return;
+    // Reload iframe src with updated startTime — simple and reliable
+    try {
+      const url = new URL(iframe.src);
+      url.searchParams.set('flashvars[playbackConfig.startTime]', Math.floor(seconds));
+      iframe.src = url.toString();
+    } catch (e) {
+      console.warn('[ReviewTab] seekPlayer failed:', e);
+    }
   }
 
-  // ---- Schema detection helpers -----------------------------------
+  // ---- Helpers ----------------------------------------------------
 
-  function detectSeverity(report) {
-    // Various schema shapes
-    if (report.overallSeverity)       return report.overallSeverity.toUpperCase();
-    if (report.severity)              return report.severity.toUpperCase();
-    if (report.ModerationLabels) {
-      // AWS Rekognition shape
-      const max = Math.max(...(report.ModerationLabels.map(l => l.Confidence || 0)));
-      if (max >= 70) return 'HIGH';
-      if (max >= 40) return 'MEDIUM';
-      return 'LOW';
-    }
-    if (Array.isArray(report.labels || report.categories)) {
-      const arr = report.labels || report.categories;
-      const max = Math.max(...arr.map(l => l.confidence || l.score || 0));
-      if (max >= 0.7) return 'HIGH';
-      if (max >= 0.4) return 'MEDIUM';
-      return 'LOW';
-    }
-    return null;
+  function decodeEntities(str) {
+    if (!str) return '';
+    return str
+      .replace(/&amp;/g,  '&')
+      .replace(/&lt;/g,   '<')
+      .replace(/&gt;/g,   '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g,  "'");
   }
 
-  function extractLabels(report) {
-    // AWS Rekognition: { ModerationLabels: [{Name, Confidence, Instances:[{BoundingBox,Confidence}]}] }
-    if (report.ModerationLabels) {
-      return report.ModerationLabels.map(l => ({
-        name:       l.Name || l.name,
-        confidence: (l.Confidence || l.confidence || 0) / 100,
-        segments:   (l.Instances || []).map(inst => ({
-          start:      inst.Timestamp != null ? msToTimecode(inst.Timestamp) : undefined,
-          confidence: inst.Confidence ? inst.Confidence / 100 : undefined,
-        })).filter(s => s.start),
-      }));
-    }
-
-    // Google Video Intelligence: { annotationResults: [{explicitAnnotation:{frames:[]}}] }
-    if (report.annotationResults) {
-      const labels = [];
-      for (const r of report.annotationResults) {
-        if (r.explicitAnnotation?.frames) {
-          const grouped = {};
-          for (const f of r.explicitAnnotation.frames) {
-            const cat = f.pornographyLikelihood || f.category || 'Explicit';
-            if (!grouped[cat]) grouped[cat] = { name: cat, confidence: 0, segments: [] };
-            grouped[cat].confidence = Math.max(grouped[cat].confidence, likelihoodToScore(f.pornographyLikelihood));
-            grouped[cat].segments.push({ start: f.timeOffset });
-          }
-          labels.push(...Object.values(grouped));
-        }
-        if (r.segmentLabelAnnotations) {
-          for (const a of r.segmentLabelAnnotations) {
-            labels.push({
-              name:       a.entity?.description || 'Unknown',
-              confidence: (a.segments?.[0]?.confidence || 0),
-              segments:   [],
-            });
-          }
-        }
-      }
-      return labels;
-    }
-
-    // Generic: array of { label/name/category, confidence/score, instances/segments }
-    const arr = report.labels || report.categories || report.moderationLabels || report.flags;
-    if (Array.isArray(arr)) {
-      return arr.map(l => ({
-        name:       l.label || l.name || l.category || l.type || '?',
-        confidence: l.confidence || l.score || l.Confidence || 0,
-        segments:   extractSegments(l),
-      }));
-    }
-
-    return [];
-  }
-
-  function extractSegments(label) {
-    const raw = label.instances || label.segments || label.timestamps || [];
-    return raw.map(s => ({
-      start: s.startTimestamp || s.start_time || s.startTimeMs != null ? msToTimecode(s.startTimeMs) : (s.start || s.startTimestamp),
-      end:   s.endTimestamp   || s.end_time   || s.endTimeMs   != null ? msToTimecode(s.endTimeMs)   : (s.end   || s.endTimestamp),
-    }));
-  }
-
-  function msToTimecode(ms) {
-    if (ms == null) return undefined;
-    const totalSec = Math.floor(ms / 1000);
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    const s = totalSec % 60;
+  function secsToTimecode(secs) {
+    if (secs == null) return '?';
+    const s   = Math.floor(secs);
+    const h   = Math.floor(s / 3600);
+    const m   = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
     return h > 0
-      ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
-      : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  }
-
-  function likelihoodToScore(likelihood) {
-    const map = { UNKNOWN:0, VERY_UNLIKELY:0.05, UNLIKELY:0.2, POSSIBLE:0.5, LIKELY:0.75, VERY_LIKELY:0.95 };
-    return map[likelihood] || 0;
+      ? `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`
+      : `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
   }
 
   // ---- Player embed -----------------------------------------------
@@ -337,7 +318,6 @@ const ReviewTab = (() => {
     }
 
     if (!uiconfId) {
-      // Fallback: show a connect prompt with uiconf input
       wrap.innerHTML = `<div class="player-placeholder" style="gap:14px">
         <span style="font-size:28px">🎬</span>
         <span>Enter a Player UI Conf ID in the header to load the player.</span>
@@ -350,7 +330,6 @@ const ReviewTab = (() => {
         </div>
         <div style="font-size:11px;color:rgba(255,255,255,.4)">Entry: ${escapeHtml(entryId)}</div>
       </div>`;
-      // Inline helper
       window.inlineSetUiconf = () => {
         const val = document.getElementById('inline-uiconf')?.value.trim();
         if (val) {
@@ -365,6 +344,7 @@ const ReviewTab = (() => {
     const src = `https://cdnapisec.kaltura.com/p/${partnerId}/embedPlaykitJs/uiconf_id/${uiconfId}?iframeembed=true&entry_id=${entryId}&flashvars[playbackConfig.startTime]=0`;
 
     wrap.innerHTML = `<iframe
+      id="kaltura-player-iframe"
       src="${escapeHtml(src)}"
       allowfullscreen
       allow="autoplay; encrypted-media"
