@@ -169,16 +169,18 @@ const ReviewTab = (() => {
     const violations = report.violations || [];
     const summary    = report.summary    || {};
 
-    // Policy number: try common field names
-    const policyId = taskJobData.reachProfileId
-      || taskJobData.policyId
-      || task.reachProfileId
-      || '—';
+    // Policy IDs from taskJobData.policyIds (may be array or single value)
+    const rawPolicyIds = taskJobData.policyIds;
+    const policyLabel  = Array.isArray(rawPolicyIds)
+      ? rawPolicyIds.map(p => `#${p}`).join(', ')
+      : rawPolicyIds != null ? `#${rawPolicyIds}` : '—';
 
-    // Compliance badge
-    const complies = summary.complies;
-    if (complies !== undefined) {
-      severityBadge.innerHTML = complies
+    // Overall compliance from summary map: { "policyId": { score, comply } }
+    // Non-Compliant if any policy fails
+    const summaryEntries = Object.entries(summary);
+    if (summaryEntries.length) {
+      const overallComply = summaryEntries.every(([, v]) => v.comply === true);
+      severityBadge.innerHTML = overallComply
         ? `<span class="compliance-badge comply">&#10003; Complies</span>`
         : `<span class="compliance-badge no-comply">&#10007; Does Not Comply</span>`;
     }
@@ -199,7 +201,7 @@ const ReviewTab = (() => {
     html += `
       <div class="report-header">
         <div class="report-header-row">
-          <span><strong>Policy:</strong> #${escapeHtml(String(policyId))}</span>
+          <span><strong>Policy:</strong> ${escapeHtml(policyLabel)}</span>
           <span style="color:var(--text-muted);font-size:12px">${violations.length} violation${violations.length !== 1 ? 's' : ''} · ${byRule.size} rule${byRule.size !== 1 ? 's' : ''}</span>
         </div>
       </div>`;
