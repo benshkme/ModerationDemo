@@ -267,11 +267,22 @@ const ReviewTab = (() => {
   function seekPlayer(seconds) {
     const iframe = document.querySelector('#player-wrap iframe');
     if (!iframe) return;
-    // Reload iframe src with updated startTime — simple and reliable
+    // URLSearchParams.set() percent-encodes brackets, breaking the Kaltura
+    // flashvars parameter. Use direct string replacement instead.
     try {
-      const url = new URL(iframe.src);
-      url.searchParams.set('flashvars[playbackConfig.startTime]', Math.floor(seconds));
-      iframe.src = url.toString();
+      const t = Math.floor(seconds);
+      const param = 'flashvars[playbackConfig.startTime]';
+      let src = iframe.src;
+      if (src.includes(param)) {
+        // Replace existing value
+        src = src.replace(
+          /flashvars\[playbackConfig\.startTime\]=[^&]*/,
+          `${param}=${t}`
+        );
+      } else {
+        src += `&${param}=${t}`;
+      }
+      iframe.src = src;
     } catch (e) {
       console.warn('[ReviewTab] seekPlayer failed:', e);
     }

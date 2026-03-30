@@ -363,6 +363,7 @@ tr:hover td { background: #fafbff; }
 
 .review-left {
   overflow-y: auto;
+  min-height: 0; /* required so grid child respects track height and scrolls */
   display: flex;
   flex-direction: column;
   gap: 16px;
