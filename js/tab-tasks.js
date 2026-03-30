@@ -69,14 +69,13 @@ const TasksTab = (() => {
                 <th>Entry ID</th>
                 <th>Status</th>
                 <th>Service Feature</th>
-                <th>Vendor Partner</th>
                 <th>Created</th>
-                <th>Updated</th>
+                <th>Moderation Result</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody id="tasks-tbody">
-              <tr class="loading-row"><td colspan="8">
+              <tr class="loading-row"><td colspan="7">
                 <span class="spinner"></span> Loading…
               </td></tr>
             </tbody>
@@ -133,7 +132,7 @@ const TasksTab = (() => {
 
     currentPage = page;
     const tbody = document.getElementById('tasks-tbody');
-    tbody.innerHTML = `<tr class="loading-row"><td colspan="8"><span class="spinner"></span> Loading…</td></tr>`;
+    tbody.innerHTML = `<tr class="loading-row"><td colspan="7"><span class="spinner"></span> Loading…</td></tr>`;
 
     clearAlert();
 
@@ -181,7 +180,7 @@ const TasksTab = (() => {
       renderRows(result.objects || []);
 
     } catch (err) {
-      tbody.innerHTML = `<tr class="loading-row"><td colspan="8" style="color:var(--red)">
+      tbody.innerHTML = `<tr class="loading-row"><td colspan="7" style="color:var(--red)">
         Error: ${escapeHtml(err.message)}
       </td></tr>`;
       showAlert(err.message, 'error');
@@ -201,7 +200,7 @@ const TasksTab = (() => {
     const tbody = document.getElementById('tasks-tbody');
 
     if (!tasks.length) {
-      tbody.innerHTML = `<tr><td colspan="8">
+      tbody.innerHTML = `<tr><td colspan="7">
         <div class="empty-state">
           <div class="icon">🔍</div>
           <strong>No tasks found</strong>
@@ -217,6 +216,8 @@ const TasksTab = (() => {
       const isModeration = moderationCatalogIds?.has(String(task.catalogItemId)) ?? false;
       const isReady      = task.status === 2 && isModeration;
 
+      const complianceHtml = isModeration ? renderCompliance(task) : '<span style="color:var(--text-muted);font-size:12px">—</span>';
+
       return `<tr>
         <td><code style="font-size:11px">${escapeHtml(task.id)}</code></td>
         <td>
@@ -228,9 +229,8 @@ const TasksTab = (() => {
         </td>
         <td><span class="pill pill-${si.cls}">${escapeHtml(si.label)}</span></td>
         <td>${escapeHtml(feature)}</td>
-        <td>${escapeHtml(task.vendorPartnerId || '—')}</td>
         <td style="white-space:nowrap">${formatDate(task.createdAt)}</td>
-        <td style="white-space:nowrap">${formatDate(task.updatedAt)}</td>
+        <td>${complianceHtml}</td>
         <td>
           ${isReady
             ? `<button class="btn btn-sm btn-review review-btn"
@@ -243,6 +243,20 @@ const TasksTab = (() => {
         </td>
       </tr>`;
     }).join('');
+  }
+
+  // ---- Moderation compliance cell ----------------------------------
+
+  function renderCompliance(task) {
+    const raw = task.taskJobData?.moderationOutputJson;
+    if (!raw) return '<span style="color:var(--text-muted);font-size:12px">—</span>';
+    try {
+      const report  = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      const complies = report?.summary?.complies;
+      if (complies === true)  return '<span class="pill pill-ready">Compliant</span>';
+      if (complies === false) return '<span class="pill pill-error">Non-Compliant</span>';
+    } catch { /* fall through */ }
+    return '<span style="color:var(--text-muted);font-size:12px">—</span>';
   }
 
   // ---- Pagination ---------------------------------------------------
