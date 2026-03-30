@@ -104,6 +104,11 @@ const TasksTab = (() => {
     document.getElementById('tasks-entry-filter').addEventListener('keydown', e => {
       if (e.key === 'Enter') loadTasks(1);
     });
+    // Delegated click handler for Review buttons (avoids inline onclick escaping issues)
+    document.getElementById('tasks-tbody').addEventListener('click', e => {
+      const btn = e.target.closest('.review-btn');
+      if (btn) openReview(btn.dataset.taskId, btn.dataset.entryId);
+    });
   }
 
   // ---- Fetch moderation catalog IDs (once) -------------------------
@@ -228,8 +233,9 @@ const TasksTab = (() => {
         <td style="white-space:nowrap">${formatDate(task.updatedAt)}</td>
         <td>
           ${isReady
-            ? `<button class="btn btn-sm btn-review"
-                 onclick="openReview(${JSON.stringify(String(task.id))}, ${JSON.stringify(String(task.entryId))})">
+            ? `<button class="btn btn-sm btn-review review-btn"
+                 data-task-id="${escapeHtml(task.id)}"
+                 data-entry-id="${escapeHtml(task.entryId)}">
                  Review
                </button>`
             : '<span style="color:var(--text-muted);font-size:12px">—</span>'

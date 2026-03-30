@@ -137,63 +137,13 @@ const ReviewTab = (() => {
     resultsBody.innerHTML =
       `<div style="text-align:center;padding:20px"><span class="spinner"></span> Fetching report…</div>`;
 
-    let reportJson = null;
+    // Primary source: taskJobData field on the entryVendorTask
+    const reportData = task.taskJobData || null;
 
-    // Strategy 1: use outputObjectId to get attachment URL then fetch JSON
-    if (task.outputObjectId) {
-      try {
-        const url = await KalturaAPI.attachmentGetUrl(task.outputObjectId);
-        if (url) {
-          const res = await fetch(url);
-          if (res.ok) {
-            const text = await res.text();
-            try { reportJson = JSON.parse(text); } catch { reportJson = { raw: text }; }
-          }
-        }
-      } catch (e) {
-        console.warn('[ReviewTab] attachmentGetUrl failed:', e);
-      }
-    }
-
-    // Strategy 2: list attachment assets for entry and look for moderation one
-    if (!reportJson && task.entryId) {
-      try {
-        const assets = await KalturaAPI.attachmentList(task.entryId);
-        const list   = assets?.objects || [];
-        const modAsset = list.find(a =>
-          (a.tags && a.tags.toLowerCase().includes('moderation')) ||
-          (a.title && a.title.toLowerCase().includes('moderation')) ||
-          a.id === task.outputObjectId
-        ) || list[0];
-
-        if (modAsset) {
-          const url = await KalturaAPI.attachmentGetUrl(modAsset.id);
-          if (url) {
-            const res = await fetch(url);
-            if (res.ok) {
-              const text = await res.text();
-              try { reportJson = JSON.parse(text); } catch { reportJson = { raw: text }; }
-            }
-          }
-        }
-      } catch (e) {
-        console.warn('[ReviewTab] attachmentList fallback failed:', e);
-      }
-    }
-
-    // Strategy 3: use task.data field if present
-    if (!reportJson && task.data) {
-      try {
-        reportJson = JSON.parse(task.data);
-      } catch {
-        reportJson = { raw: task.data };
-      }
-    }
-
-    if (!reportJson) {
+    if (!reportData) {
       resultsBody.innerHTML = `
         <div class="alert alert-info">
-          No moderation report data was found for this task. The report may not have been generated yet, or it may be stored in a non-standard format.
+          No moderation report found (taskJobData is empty). The job may still be processing.
         </div>
         <details style="margin-top:12px">
           <summary>Raw task object</summary>
@@ -202,7 +152,7 @@ const ReviewTab = (() => {
       return;
     }
 
-    renderReport(reportJson, severityBadge, resultsBody);
+    renderReport(reportData, severityBadge, resultsBody);
   }
 
   // ---- Render parsed moderation report ----------------------------
@@ -438,10 +388,7 @@ const ReviewTab = (() => {
 
   function onActivate() {
     renderShell();
-    const t = AppState.currentReviewTask;
-    if (t && t.taskId) {
-      loadReview(t.taskId, t.entryId);
-    }
+    // loadReview is triggered directly by openReview(); no auto-reload here.
   }
 
   return { onActivate, loadReview };

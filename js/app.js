@@ -123,6 +123,9 @@ function formatDate(ts) {
 function openReview(taskId, entryId) {
   AppState.currentReviewTask = { taskId, entryId };
   switchTab('review');
+  if (typeof ReviewTab !== 'undefined') {
+    ReviewTab.loadReview(taskId, entryId);
+  }
 }
 
 // ---- Init ----------------------------------------------------------
