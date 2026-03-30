@@ -356,6 +356,7 @@ tr:hover td { background: #fafbff; }
 .review-layout {
   display: grid;
   grid-template-columns: 420px 1fr;
+  grid-template-rows: 1fr;   /* forces the single row to fill the container height */
   gap: 20px;
   height: calc(100vh - 200px);
   min-height: 500px;
@@ -363,7 +364,10 @@ tr:hover td { background: #fafbff; }
 
 .review-left {
   overflow-y: auto;
-  min-height: 0; /* required so grid child respects track height and scrolls */
+  min-height: 0;
+  /* belt-and-suspenders: explicit cap so the panel scrolls even if the
+     grid row height calculation doesn't fully propagate */
+  max-height: calc(100vh - 200px);
   display: flex;
   flex-direction: column;
   gap: 16px;

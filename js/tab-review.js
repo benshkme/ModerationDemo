@@ -267,22 +267,15 @@ const ReviewTab = (() => {
   function seekPlayer(seconds) {
     const iframe = document.querySelector('#player-wrap iframe');
     if (!iframe) return;
-    // URLSearchParams.set() percent-encodes brackets, breaking the Kaltura
-    // flashvars parameter. Use direct string replacement instead.
     try {
       const t = Math.floor(seconds);
-      const param = 'flashvars[playbackConfig.startTime]';
       let src = iframe.src;
-      if (src.includes(param)) {
-        // Replace existing value
-        src = src.replace(
-          /flashvars\[playbackConfig\.startTime\]=[^&]*/,
-          `${param}=${t}`
-        );
-      } else {
-        src += `&${param}=${t}`;
-      }
-      iframe.src = src;
+      // Browser normalizes iframe.src brackets to percent-encoded form (%5B/%5D).
+      // Regex matches BOTH the literal and percent-encoded bracket variants so
+      // the replace always hits regardless of how many times it has been called.
+      const re = /flashvars(%5B|\[)playbackConfig\.startTime(%5D|\])=[^&]*/i;
+      const replacement = `flashvars%5BplaybackConfig.startTime%5D=${t}`;
+      iframe.src = re.test(src) ? src.replace(re, replacement) : src + `&${replacement}`;
     } catch (e) {
       console.warn('[ReviewTab] seekPlayer failed:', e);
     }
