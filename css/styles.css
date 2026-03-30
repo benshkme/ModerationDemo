@@ -363,14 +363,29 @@ tr:hover td { background: #fafbff; }
 }
 
 .review-left {
-  overflow-y: auto;
-  min-height: 0;
-  /* belt-and-suspenders: explicit cap so the panel scrolls even if the
-     grid row height calculation doesn't fully propagate */
-  max-height: calc(100vh - 200px);
+  /* Direct height — does not depend on grid parent propagation */
+  height: calc(100vh - 220px);
+  min-height: 400px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow: hidden;
+}
+
+/* Results card grows to fill whatever space the meta card leaves,
+   and its body scrolls independently */
+#review-results-card {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#review-results-card .card-body {
+  flex: 1 1 0;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .review-right {
