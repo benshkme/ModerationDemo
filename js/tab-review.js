@@ -4,6 +4,8 @@
 
 const ReviewTab = (() => {
 
+  let _playerBaseSrc = null; // base URL without startTime/autoPlay — rebuilt on every seek
+
   // ---- Render shell ------------------------------------------------
 
   function renderShell() {
@@ -266,19 +268,11 @@ const ReviewTab = (() => {
 
   function seekPlayer(seconds) {
     const iframe = document.querySelector('#player-wrap iframe');
-    if (!iframe) return;
-    try {
-      const t = Math.floor(seconds);
-      let src = iframe.src;
-      // Browser normalizes iframe.src brackets to percent-encoded form (%5B/%5D).
-      // Regex matches BOTH the literal and percent-encoded bracket variants so
-      // the replace always hits regardless of how many times it has been called.
-      const re = /flashvars(%5B|\[)playbackConfig\.startTime(%5D|\])=[^&]*/i;
-      const replacement = `flashvars%5BplaybackConfig.startTime%5D=${t}`;
-      iframe.src = re.test(src) ? src.replace(re, replacement) : src + `&${replacement}`;
-    } catch (e) {
-      console.warn('[ReviewTab] seekPlayer failed:', e);
-    }
+    if (!iframe || !_playerBaseSrc) return;
+    // Build URL fresh from the stored base — avoids all browser bracket-encoding
+    // issues and ensures autoPlay is always set so playback starts immediately.
+    const t = Math.floor(seconds);
+    iframe.src = `${_playerBaseSrc}&flashvars[autoPlay]=true&flashvars[playbackConfig.startTime]=${t}`;
   }
 
   // ---- Helpers ----------------------------------------------------
@@ -345,7 +339,10 @@ const ReviewTab = (() => {
       return;
     }
 
-    const src = `https://cdnapisec.kaltura.com/p/${partnerId}/embedPlaykitJs/uiconf_id/${uiconfId}?iframeembed=true&entry_id=${entryId}&flashvars[playbackConfig.startTime]=0`;
+    // Store base URL (no startTime/autoPlay) so seekPlayer can rebuild cleanly
+    _playerBaseSrc = `https://cdnapisec.kaltura.com/p/${partnerId}/embedPlaykitJs/uiconf_id/${uiconfId}?iframeembed=true&entry_id=${entryId}`;
+
+    const src = `${_playerBaseSrc}&flashvars[autoPlay]=true&flashvars[playbackConfig.startTime]=0`;
 
     wrap.innerHTML = `<iframe
       id="kaltura-player-iframe"
