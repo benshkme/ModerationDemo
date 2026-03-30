@@ -95,14 +95,32 @@ const KalturaAPI = (() => {
     if (createdAfter)           params.filter.createdAtGreaterThanOrEqual = createdAfter;
     if (entryId)                params.filter.entryIdEqual               = entryId;
 
-    // Request taskJobData explicitly — it is omitted from list responses by default
-    params.responseProfile = {
-      objectType: 'KalturaDetachedResponseProfile',
-      type: 1, // INCLUDE_FIELDS
-      fields: 'id,entryId,status,serviceFeature,catalogItemId,createdAt,taskJobData,errDescription',
-    };
-
     return call('reach_entryVendorTask', 'list', params);
+  }
+
+  // Batch get multiple tasks in a single HTTP call via Kaltura multi-request
+  async function taskGetMulti(taskIds) {
+    if (!taskIds.length) return [];
+
+    const url  = `${state.baseUrl}/api_v3/service/multirequest`;
+    const body = new URLSearchParams();
+    body.append('format', '1');
+    if (state.ks) body.append('ks', state.ks);
+
+    taskIds.forEach((id, i) => {
+      const n = i + 1;
+      body.append(`${n}:service`, 'reach_entryVendorTask');
+      body.append(`${n}:action`,  'get');
+      body.append(`${n}:id`,      id);
+    });
+
+    const res  = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   }
 
   // reach_vendorCatalogItem.list — get catalog items by service feature
@@ -215,6 +233,7 @@ const KalturaAPI = (() => {
     sessionGet,
     taskList,
     taskGet,
+    taskGetMulti,
     catalogItemList,
     attachmentGetUrl,
     attachmentList,

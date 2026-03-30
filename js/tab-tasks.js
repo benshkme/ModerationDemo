@@ -210,13 +210,20 @@ const TasksTab = (() => {
       return;
     }
 
+    const moderationTaskIds = tasks
+      .filter(t => moderationCatalogIds?.has(String(t.catalogItemId)))
+      .map(t => t.id);
+
     tbody.innerHTML = tasks.map(task => {
       const si      = KalturaAPI.taskStatusInfo(task.status);
       const feature = KalturaAPI.serviceFeatureLabel(task.serviceFeature);
       const isModeration = moderationCatalogIds?.has(String(task.catalogItemId)) ?? false;
       const isReady      = task.status === 2 && isModeration;
 
-      const complianceHtml = isModeration ? renderCompliance(task) : '<span style="color:var(--text-muted);font-size:12px">—</span>';
+      // Compliance data is not in the list response; will be fetched via multi-request
+      const complianceHtml = isModeration
+        ? '<span class="spinner" style="width:12px;height:12px;border-width:2px"></span>'
+        : '<span style="color:var(--text-muted);font-size:12px">—</span>';
 
       return `<tr>
         <td><code style="font-size:11px">${escapeHtml(task.id)}</code></td>
@@ -230,7 +237,7 @@ const TasksTab = (() => {
         <td><span class="pill pill-${si.cls}">${escapeHtml(si.label)}</span></td>
         <td>${escapeHtml(feature)}</td>
         <td style="white-space:nowrap">${formatDate(task.createdAt)}</td>
-        <td>${complianceHtml}</td>
+        <td data-compliance-id="${escapeHtml(task.id)}">${complianceHtml}</td>
         <td>
           ${isReady
             ? `<button class="btn btn-sm btn-review review-btn"
@@ -243,6 +250,9 @@ const TasksTab = (() => {
         </td>
       </tr>`;
     }).join('');
+
+    // Fetch taskJobData for moderation tasks in the background
+    if (moderationTaskIds.length) fetchAndRenderCompliance(moderationTaskIds);
   }
 
   // ---- Moderation compliance cell ----------------------------------
@@ -257,6 +267,21 @@ const TasksTab = (() => {
       if (complies === false) return '<span class="pill pill-error">Non-Compliant</span>';
     } catch { /* fall through */ }
     return '<span style="color:var(--text-muted);font-size:12px">—</span>';
+  }
+
+  // ---- Fetch full task details for compliance column (background) --
+
+  async function fetchAndRenderCompliance(taskIds) {
+    try {
+      const results = await KalturaAPI.taskGetMulti(taskIds);
+      for (const task of results) {
+        if (!task || task.objectType === 'KalturaAPIException') continue;
+        const cell = document.querySelector(`[data-compliance-id="${task.id}"]`);
+        if (cell) cell.innerHTML = renderCompliance(task);
+      }
+    } catch (e) {
+      console.warn('[TasksTab] compliance fetch failed:', e);
+    }
   }
 
   // ---- Pagination ---------------------------------------------------
