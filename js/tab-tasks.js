@@ -7,7 +7,8 @@ const TasksTab = (() => {
   let currentPage          = 1;
   let totalCount           = 0;
   let lastFilter           = {};
-  let moderationCatalogIds = null; // Set of catalog item IDs for serviceFeature=15 (Moderation)
+  let moderationCatalogIds   = null; // Set of catalog item IDs for serviceFeature=15
+  let moderationCatalogItems = null; // Full catalog item objects (for order modal)
   const PAGE_SIZE          = 30;
   const MODERATION_FEATURE = 15;
 
@@ -56,6 +57,7 @@ const TasksTab = (() => {
             </select>
             <input id="tasks-entry-filter" type="text" placeholder="Entry ID…" style="width:140px">
             <button class="btn btn-secondary btn-sm" id="tasks-refresh-btn">&#8635; Refresh</button>
+            <button class="btn btn-primary btn-sm" id="tasks-order-btn">+ Order Job</button>
           </div>
         </div>
 
@@ -103,6 +105,7 @@ const TasksTab = (() => {
     document.getElementById('tasks-entry-filter').addEventListener('keydown', e => {
       if (e.key === 'Enter') loadTasks(1);
     });
+    document.getElementById('tasks-order-btn').addEventListener('click', openOrderModal);
     // Delegated click handler for Review buttons (avoids inline onclick escaping issues)
     document.getElementById('tasks-tbody').addEventListener('click', e => {
       const btn = e.target.closest('.review-btn');
@@ -116,9 +119,12 @@ const TasksTab = (() => {
     if (moderationCatalogIds !== null) return;
     try {
       const result = await KalturaAPI.catalogItemList(MODERATION_FEATURE);
-      moderationCatalogIds = new Set((result?.objects || []).map(i => String(i.id)));
+      const items = result?.objects || [];
+      moderationCatalogIds   = new Set(items.map(i => String(i.id)));
+      moderationCatalogItems = items;
     } catch {
-      moderationCatalogIds = new Set(); // fail open — no Review buttons shown
+      moderationCatalogIds   = new Set();
+      moderationCatalogItems = [];
     }
   }
 
@@ -329,6 +335,152 @@ const TasksTab = (() => {
   function buildEntryUrl(entryId) {
     // Generic deep-link; adjust base domain if custom deployment
     return `https://kmc.kaltura.com/index.php/kmcng/content/entries/entry/${entryId}/metadata`;
+  }
+
+  // ---- Order Job Modal --------------------------------------------
+
+  async function openOrderModal() {
+    if (!AppState.connected) {
+      showAlert('Connect with a valid KS first.', 'info');
+      return;
+    }
+    await ensureModerationCatalogIds();
+    if (!moderationCatalogItems || !moderationCatalogItems.length) {
+      showAlert('No moderation catalog items found for this account.', 'error');
+      return;
+    }
+    // Remove any existing modal
+    document.getElementById('order-modal-overlay')?.remove();
+
+    const catalogOptions = moderationCatalogItems.map(item =>
+      `<option value="${escapeHtml(String(item.id))}">${escapeHtml(item.name || 'Moderation')} (ID: ${escapeHtml(String(item.id))})</option>`
+    ).join('');
+
+    const overlay = document.createElement('div');
+    overlay.id = 'order-modal-overlay';
+    overlay.className = 'modal-overlay';
+    overlay.innerHTML = `
+      <div class="modal" role="dialog" aria-modal="true">
+        <div class="modal-header">
+          <h2>Order Moderation Job</h2>
+          <button class="modal-close-btn" id="modal-close-btn" title="Close">&#10005;</button>
+        </div>
+        <div class="modal-body">
+          <div id="modal-alert-area"></div>
+
+          ${moderationCatalogItems.length > 1 ? `
+          <div class="form-group">
+            <label class="form-label">Catalog Item</label>
+            <select class="form-input" id="modal-catalog-select">${catalogOptions}</select>
+          </div>` : `<input type="hidden" id="modal-catalog-select" value="${escapeHtml(String(moderationCatalogItems[0].id))}">`}
+
+          <div class="form-group">
+            <label class="form-label">Entry (video)</label>
+            <div class="entry-search-row">
+              <input type="text" id="modal-entry-search" class="form-input" placeholder="Search by name or ID…">
+              <button class="btn btn-outline btn-sm" id="modal-search-btn">Search</button>
+            </div>
+            <div class="entry-picker" id="modal-entry-picker">
+              <div style="padding:16px;text-align:center"><span class="spinner"></span></div>
+            </div>
+            <div class="selected-entry-label" id="modal-selected-label"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Policy (Reach Profile ID)</label>
+            <input type="text" id="modal-policy-input" class="form-input" placeholder="Enter reach profile / policy ID">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" id="modal-cancel-btn">Cancel</button>
+          <button class="btn btn-primary" id="modal-submit-btn">Submit Order</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Track selection
+    let selectedEntryId = null;
+
+    // Close handlers
+    const closeModal = () => overlay.remove();
+    document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+    document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+    // Entry search
+    const searchBtn  = document.getElementById('modal-search-btn');
+    const searchInput = document.getElementById('modal-entry-search');
+    const doSearch = () => loadEntriesForModal(searchInput.value.trim());
+    searchBtn.addEventListener('click', doSearch);
+    searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+
+    // Single delegated click handler on the picker (set up once)
+    document.getElementById('modal-entry-picker').addEventListener('click', e => {
+      const item = e.target.closest('.entry-item');
+      if (!item) return;
+      document.querySelectorAll('#modal-entry-picker .entry-item').forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
+      selectedEntryId = item.dataset.id;
+      const label = document.getElementById('modal-selected-label');
+      if (label) label.innerHTML =
+        `Selected: <strong>${escapeHtml(item.dataset.name || item.dataset.id)}</strong>
+         <code style="font-size:11px;margin-left:4px">${escapeHtml(item.dataset.id)}</code>`;
+    });
+
+    // Initial load
+    loadEntriesForModal('');
+
+    // Submit
+    document.getElementById('modal-submit-btn').addEventListener('click', async () => {
+      const catalogItemId = document.getElementById('modal-catalog-select').value;
+      const policyId      = document.getElementById('modal-policy-input').value.trim();
+      if (!selectedEntryId) { showModalAlert('Please select an entry.'); return; }
+      if (!policyId)        { showModalAlert('Please enter a policy/reach profile ID.'); return; }
+
+      const btn = document.getElementById('modal-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      try {
+        await KalturaAPI.vendorTaskAdd({ entryId: selectedEntryId, catalogItemId, reachProfileId: policyId });
+        closeModal();
+        loadTasks(1);
+      } catch (err) {
+        showModalAlert(`Error: ${err.message || err}`);
+        btn.disabled = false;
+        btn.textContent = 'Submit Order';
+      }
+    });
+  }
+
+  function loadEntriesForModal(search) {
+    const picker = document.getElementById('modal-entry-picker');
+    if (!picker) return;
+    picker.innerHTML = '<div style="padding:16px;text-align:center"><span class="spinner"></span></div>';
+
+    KalturaAPI.entryList({ search }).then(result => {
+      if (!picker.isConnected) return; // modal was closed while fetching
+      const entries = result?.objects || [];
+      if (!entries.length) {
+        picker.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:13px">No entries found</div>';
+        return;
+      }
+      picker.innerHTML = entries.map(e => `
+        <div class="entry-item" data-id="${escapeHtml(e.id)}" data-name="${escapeHtml(e.name || '')}">
+          <span class="entry-item-id">${escapeHtml(e.id)}</span>
+          <span class="entry-item-name">${escapeHtml(e.name || '(no name)')}</span>
+        </div>`).join('');
+    }).catch(err => {
+      if (picker.isConnected)
+        picker.innerHTML = `<div style="padding:12px;color:var(--red);font-size:13px">${escapeHtml(err.message)}</div>`;
+    });
+  }
+
+  function showModalAlert(msg) {
+    const area = document.getElementById('modal-alert-area');
+    if (area) area.innerHTML = `<div class="alert alert-error" style="margin-bottom:12px">${escapeHtml(msg)}</div>`;
   }
 
   // ---- Tab lifecycle -----------------------------------------------

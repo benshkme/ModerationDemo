@@ -165,6 +165,38 @@ const KalturaAPI = (() => {
     return call('baseentry', 'get', { entryId });
   }
 
+  // baseEntry.list — list video entries (mediaType=1), optional freeText search
+  async function entryList({ search = '', pageIndex = 1, pageSize = 30 } = {}) {
+    const params = {
+      filter: {
+        objectType: 'KalturaMediaEntryFilter',
+        mediaTypeEqual: 1,  // VIDEO
+        orderBy: '-createdAt',
+      },
+      pager: { objectType: 'KalturaFilterPager', pageIndex, pageSize },
+    };
+    if (search) {
+      // If looks like an entry ID use idIn, otherwise freeText
+      if (/^[\w_]+$/.test(search) && search.includes('_')) {
+        params.filter.idIn = search;
+      } else {
+        params.filter.freeText = search;
+      }
+    }
+    return call('baseEntry', 'list', params);
+  }
+
+  // reach_entryVendorTask.add — order a new vendor task
+  async function vendorTaskAdd({ entryId, catalogItemId, reachProfileId } = {}) {
+    const task = {
+      objectType: 'KalturaEntryVendorTask',
+      entryId,
+      catalogItemId,
+    };
+    if (reachProfileId) task.reachProfileId = reachProfileId;
+    return call('reach_entryVendorTask', 'add', { entryVendorTask: task });
+  }
+
   // ---- Helpers -----------------------------------------------
 
   function getPartnerId() { return state.partnerId; }
@@ -238,6 +270,8 @@ const KalturaAPI = (() => {
     attachmentGetUrl,
     attachmentList,
     entryGet,
+    entryList,
+    vendorTaskAdd,
     getPartnerId,
     getKS,
     getBaseUrl,
