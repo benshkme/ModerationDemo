@@ -235,7 +235,7 @@ const TasksTab = (() => {
             ${escapeHtml(task.entryId)}
           </a>
         </td>
-        <td><span class="pill pill-${si.cls}">${escapeHtml(si.label)}</span></td>
+        <td>${renderStatusPill(si, task)}</td>
         <td>${escapeHtml(feature)}</td>
         <td style="white-space:nowrap">${formatDate(task.createdAt)}</td>
         <td data-compliance-id="${escapeHtml(task.id)}">${complianceHtml}</td>
@@ -252,6 +252,16 @@ const TasksTab = (() => {
       </tr>`;
     }).join('');
 
+  }
+
+  // ---- Status pill (with hover tooltip for error statuses) ---------
+
+  function renderStatusPill(si, task) {
+    const isError = si.cls === 'error';
+    const errText = isError && task.errDescription ? task.errDescription : null;
+    const titleAttr = errText ? ` title="${escapeHtml(errText)}"` : '';
+    const styleAttr = errText ? ' style="cursor:help;text-decoration:underline dotted"' : '';
+    return `<span class="pill pill-${si.cls}"${titleAttr}${styleAttr}>${escapeHtml(si.label)}</span>`;
   }
 
   // ---- Moderation compliance cell ----------------------------------
