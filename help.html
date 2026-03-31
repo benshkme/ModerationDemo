@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaltura Moderation Demo — Help</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:        #006EFA;
+      --blue-dark:   #0055c4;
+      --blue-light:  #e8f0fe;
+      --dark:        #1a1a2e;
+      --text:        #1e2240;
+      --text-muted:  #6b7280;
+      --border:      #e0e4ef;
+      --surface:     #fff;
+      --bg:          #f5f6fa;
+      --green:       #15803d;
+      --green-bg:    #dcfce7;
+      --red:         #b91c1c;
+      --red-bg:      #fee2e2;
+      --amber:       #92400e;
+      --amber-bg:    #fef3c7;
+      --radius:      8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--dark);
+      color: #fff;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,.3);
+    }
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+    }
+    .logo { display: flex; align-items: center; gap: 14px; text-decoration: none; }
+    .logo img { height: 28px; }
+    .logo-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,.5);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      border-left: 1px solid rgba(255,255,255,.2);
+      padding-left: 12px;
+    }
+    .header-nav a {
+      color: rgba(255,255,255,.7);
+      text-decoration: none;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      transition: background .15s;
+    }
+    .header-nav a:hover { background: rgba(255,255,255,.1); color: #fff; }
+
+    /* ── Layout ── */
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 32px 80px;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+
+    /* ── Sidebar / TOC ── */
+    .toc {
+      position: sticky;
+      top: 80px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      font-size: 13px;
+    }
+    .toc-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .toc ol { list-style: none; }
+    .toc > ol > li { margin-bottom: 4px; }
+    .toc > ol > li > ol { padding-left: 14px; margin-top: 4px; }
+    .toc > ol > li > ol > li { margin-bottom: 2px; }
+    .toc a {
+      color: var(--text-muted);
+      text-decoration: none;
+      display: block;
+      padding: 3px 0;
+      border-radius: 4px;
+      transition: color .1s;
+    }
+    .toc a:hover { color: var(--blue); }
+    .toc-section { font-weight: 600; color: var(--text); }
+
+    /* ── Content ── */
+    .content h1 {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    .content .subtitle {
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-bottom: 36px;
+    }
+
+    .section { margin-bottom: 48px; }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h2 .num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin: 20px 0 8px;
+    }
+
+    p { margin-bottom: 12px; }
+    p:last-child { margin-bottom: 0; }
+
+    a { color: var(--blue); }
+    a:hover { color: var(--blue-dark); }
+
+    /* ── Field table ── */
+    .field-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin: 12px 0 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .field-table th {
+      background: #f8f9fb;
+      padding: 9px 14px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .field-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid #f0f2f7;
+      vertical-align: top;
+    }
+    .field-table tr:last-child td { border-bottom: none; }
+    .field-table code {
+      background: var(--blue-light);
+      color: var(--blue-dark);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: monospace;
+    }
+    .req { color: var(--red); font-weight: 700; }
+
+    /* ── Steps ── */
+    .steps { list-style: none; counter-reset: step; margin: 12px 0 20px; }
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 14px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+    }
+    .steps li::before {
+      content: counter(step);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 26px;
+      height: 26px;
+      background: var(--blue);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* ── Callouts ── */
+    .callout {
+      display: flex;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      margin: 16px 0;
+      font-size: 14px;
+    }
+    .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .callout.info    { background: var(--blue-light);  border-left: 3px solid var(--blue); }
+    .callout.tip     { background: var(--green-bg);    border-left: 3px solid #16a34a; }
+    .callout.warning { background: var(--amber-bg);    border-left: 3px solid #d97706; }
+
+    /* ── Badge pills ── */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .pill-ready    { background: #dcfce7; color: #15803d; }
+    .pill-process  { background: #dbeafe; color: #1d4ed8; }
+    .pill-pending  { background: #f3f4f6; color: #4b5563; }
+    .pill-error    { background: #fee2e2; color: #b91c1c; }
+
+    /* ── Inline code / kbd ── */
+    code {
+      background: #f0f2f7;
+      color: var(--blue-dark);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: 'Menlo', 'Monaco', monospace;
+    }
+    kbd {
+      background: #1e2240;
+      color: #e2e8f0;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: monospace;
+    }
+
+    /* ── Feature grid ── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 16px 0;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+    }
+    .feature-card .icon { font-size: 24px; margin-bottom: 8px; }
+    .feature-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .feature-card p { font-size: 13px; color: var(--text-muted); margin: 0; line-height: 1.5; }
+
+    /* ── Divider ── */
+    hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+    /* ── Responsive ── */
+    @media (max-width: 760px) {
+      .page-wrap { grid-template-columns: 1fr; }
+      .toc { display: none; }
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="index.html">
+      <img src="assets/kaltura-logo.svg" alt="Kaltura">
+      <span class="logo-sub">Moderation Demo</span>
+    </a>
+    <nav class="header-nav">
+      <a href="index.html">← Back to App</a>
+    </nav>
+  </div>
+</header>
+
+<div class="page-wrap">
+
+  <!-- ── Sidebar TOC ── -->
+  <aside class="toc">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#overview" class="toc-section">Overview</a></li>
+      <li><a href="#installation" class="toc-section">Installation</a>
+        <ol>
+          <li><a href="#prerequisites">Prerequisites</a></li>
+          <li><a href="#running">Running locally</a></li>
+        </ol>
+      </li>
+      <li><a href="#connecting" class="toc-section">Connecting</a>
+        <ol>
+          <li><a href="#ks">Kaltura Session</a></li>
+          <li><a href="#player-config">Player config</a></li>
+        </ol>
+      </li>
+      <li><a href="#tab-tasks" class="toc-section">Entry Vendor Tasks</a>
+        <ol>
+          <li><a href="#task-filters">Filters</a></li>
+          <li><a href="#task-columns">Columns</a></li>
+          <li><a href="#order-job">Ordering a job</a></li>
+          <li><a href="#task-status">Status reference</a></li>
+        </ol>
+      </li>
+      <li><a href="#tab-review" class="toc-section">Review</a>
+        <ol>
+          <li><a href="#review-results">Moderation results</a></li>
+          <li><a href="#review-player">Video player</a></li>
+          <li><a href="#seeking">Timestamp links</a></li>
+        </ol>
+      </li>
+      <li><a href="#tab-policies" class="toc-section">Policies</a></li>
+      <li><a href="#concepts" class="toc-section">Key concepts</a></li>
+      <li><a href="#troubleshooting" class="toc-section">Troubleshooting</a></li>
+    </ol>
+  </aside>
+
+  <!-- ── Main content ── -->
+  <main class="content">
+
+    <h1>Kaltura Moderation Demo</h1>
+    <p class="subtitle">A single-page web app for reviewing and managing Kaltura Reach content moderation jobs.</p>
+
+    <!-- ── Feature cards ── -->
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="icon">🗂️</div>
+        <h4>Entry Vendor Tasks</h4>
+        <p>Browse, filter, and order moderation jobs. See compliance results at a glance.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">🔍</div>
+        <h4>Moderation Review</h4>
+        <p>Detailed violation breakdown by rule with timestamp links that jump the player to the exact scene.</p>
+      </div>
+      <div class="feature-card">
+        <div class="icon">▶️</div>
+        <h4>Inline Player</h4>
+        <p>Kaltura Player v7 embedded directly — seek to any flagged moment with a single click.</p>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- ═══ 1. Overview ═══ -->
+    <section class="section" id="overview">
+      <h2><span class="num">1</span> Overview</h2>
+      <p>
+        The <strong>Kaltura Moderation Demo</strong> is a browser-based tool that demonstrates Kaltura's
+        <em>Reach</em> content moderation capabilities. It connects directly to the Kaltura API using a
+        Kaltura Session (KS) and provides three main areas:
+      </p>
+      <ul style="padding-left:20px;margin:10px 0">
+        <li style="margin-bottom:6px"><strong>Entry Vendor Tasks</strong> — lists all moderation jobs for your account, shows their status and compliance result, and lets you order new jobs.</li>
+        <li style="margin-bottom:6px"><strong>Review</strong> — shows a detailed moderation report (violations grouped by rule, confidence scores, timestamps) alongside the Kaltura Player for the analysed entry.</li>
+        <li style="margin-bottom:6px"><strong>Policies</strong> — placeholder for future CRUD management of moderation policies.</li>
+      </ul>
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>No server, database, or build step is required. The app is pure HTML + JavaScript and calls the Kaltura API directly from the browser.</div>
+      </div>
+    </section>
+
+    <!-- ═══ 2. Installation ═══ -->
+    <section class="section" id="installation">
+      <h2><span class="num">2</span> Installation</h2>
+
+      <h3 id="prerequisites">Prerequisites</h3>
+      <table class="field-table">
+        <tr><th>Requirement</th><th>Details</th></tr>
+        <tr><td>Modern browser</td><td>Chrome, Edge, Firefox, or Safari — no plugins needed.</td></tr>
+        <tr><td>Kaltura account</td><td>SaaS (<code>www.kaltura.com</code>) or on-premises deployment with Reach enabled.</td></tr>
+        <tr><td>Admin / operator KS</td><td>A Kaltura Session with sufficient privileges to call <code>entryVendorTask</code>, <code>reachProfile</code>, and <code>baseEntry</code> services.</td></tr>
+        <tr><td>Kaltura Player uiconf ID</td><td>A Player v7 uiconf ID from your account (required for the Review player).</td></tr>
+      </table>
+
+      <h3 id="running">Running locally</h3>
+      <p>Because the app uses <code>fetch()</code> to call the Kaltura API, it must be served over HTTP (not opened directly as a <code>file://</code> URL) to avoid CORS issues.</p>
+
+      <ol class="steps">
+        <li>Clone or download the repository: <br><code>git clone https://github.com/benshkme/ModerationDemo</code></li>
+        <li>Navigate to the project folder: <br><code>cd ModerationDemo</code></li>
+        <li>Start a local HTTP server. With Python 3: <br><code>python3 -m http.server 8080</code></li>
+        <li>Open <a href="http://localhost:8080" target="_blank">http://localhost:8080</a> in your browser.</li>
+      </ol>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>Any static file server works — VS Code's <em>Live Server</em> extension, <code>npx serve .</code>, <code>npx http-server</code>, Nginx, or Apache.</div>
+      </div>
+    </section>
+
+    <!-- ═══ 3. Connecting ═══ -->
+    <section class="section" id="connecting">
+      <h2><span class="num">3</span> Connecting to Kaltura</h2>
+      <p>
+        All Kaltura API calls are authenticated with a <strong>Kaltura Session (KS)</strong>.
+        The connection bar at the top of every page contains three inputs:
+      </p>
+
+      <table class="field-table">
+        <tr>
+          <th>Field</th><th>Required</th><th>Description</th>
+        </tr>
+        <tr>
+          <td><strong>Kaltura Session (KS)</strong></td>
+          <td><span class="req">Required</span></td>
+          <td>
+            A signed session token from your Kaltura account.
+            Generate one in the <a href="https://kmc.kaltura.com" target="_blank">KMC</a> under
+            <em>Settings → Integration Settings → Generate KS</em>, or via the API using
+            <code>session.start</code>. The field is masked for security.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Service URL</strong></td>
+          <td>Optional</td>
+          <td>
+            Base URL of your Kaltura deployment. Defaults to
+            <code>https://www.kaltura.com</code>. Change this for on-premises or
+            regional SaaS deployments (e.g. <code>https://www.eu.kaltura.com</code>).
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Player uiconf ID</strong></td>
+          <td>Optional*</td>
+          <td>
+            The numeric ID of a Kaltura Player v7 configuration from your account.
+            Required for the Review tab player. Find it in the KMC under
+            <em>Studio → Universal Studio</em>.
+          </td>
+        </tr>
+      </table>
+
+      <h3 id="ks">Obtaining a Kaltura Session</h3>
+      <ol class="steps">
+        <li>Log in to the <a href="https://kmc.kaltura.com" target="_blank">Kaltura Management Console (KMC)</a>.</li>
+        <li>Go to <strong>Settings → Integration Settings</strong>.</li>
+        <li>Click <strong>Generate KS</strong> and select an expiry time and privileges.</li>
+        <li>Copy the generated token and paste it into the KS field.</li>
+      </ol>
+
+      <div class="callout warning">
+        <span class="callout-icon">⚠️</span>
+        <div>
+          A KS is a sensitive credential. Treat it like a password — do not share it or commit it to version control.
+          It expires after the configured TTL (default: 24 hours).
+        </div>
+      </div>
+
+      <h3 id="player-config">Player uiconf ID</h3>
+      <p>
+        If you don't enter a uiconf ID before opening the Review tab, the player area will show
+        an inline prompt where you can enter it. The value is saved in
+        <code>sessionStorage</code> so it persists across page refreshes within the same browser tab.
+      </p>
+
+      <p>
+        After clicking <strong>Connect</strong>, the app calls <code>session.get</code> to validate the KS
+        and detect your <strong>Partner ID</strong> automatically. The status badge in the header
+        turns green when connected.
+      </p>
+    </section>
+
+    <!-- ═══ 4. Entry Vendor Tasks ═══ -->
+    <section class="section" id="tab-tasks">
+      <h2><span class="num">4</span> Entry Vendor Tasks</h2>
+      <p>
+        The <strong>Entry Vendor Tasks</strong> tab lists all <code>KalturaEntryVendorTask</code>
+        records for your account. Each record represents one moderation (or other Reach) job
+        submitted for a specific entry.
+      </p>
+
+      <h3 id="task-filters">Filters</h3>
+      <table class="field-table">
+        <tr><th>Filter</th><th>Default</th><th>Description</th></tr>
+        <tr>
+          <td><strong>Service Feature</strong></td>
+          <td>Moderation (15)</td>
+          <td>
+            Filter by vendor service feature. The default shows only moderation jobs.
+            Change to <em>All Features</em> to see captions, translation, and other Reach jobs.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Status</strong></td>
+          <td>All Statuses</td>
+          <td>Filter by job status — e.g. show only Ready jobs or only errors.</td>
+        </tr>
+        <tr>
+          <td><strong>Created in last</strong></td>
+          <td>Last 24 hours</td>
+          <td>
+            Limits results by creation time. Options: Last hour · Last 24h · Last 7 days ·
+            Last 30 days · Last year · All time.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Entry ID</strong></td>
+          <td>—</td>
+          <td>
+            Type an entry ID and press <kbd>Enter</kbd> to filter tasks for that specific entry.
+          </td>
+        </tr>
+      </table>
+
+      <h3 id="task-columns">Table columns</h3>
+      <table class="field-table">
+        <tr><th>Column</th><th>Description</th></tr>
+        <tr><td><strong>Task ID</strong></td><td>Unique identifier of the <code>KalturaEntryVendorTask</code>.</td></tr>
+        <tr><td><strong>Entry ID</strong></td><td>The Kaltura entry that was moderated. Click to open it in the KMC.</td></tr>
+        <tr>
+          <td><strong>Status</strong></td>
+          <td>
+            Current job status (see Status Reference below).
+            For <span class="pill pill-error">Error</span> or <span class="pill pill-error">Rejected</span>
+            statuses, hover over the pill to see the full error description.
+          </td>
+        </tr>
+        <tr><td><strong>Service Feature</strong></td><td>The Reach feature type (e.g. Moderation, Captions).</td></tr>
+        <tr><td><strong>Created</strong></td><td>When the job was submitted.</td></tr>
+        <tr>
+          <td><strong>Moderation Result</strong></td>
+          <td>
+            For moderation jobs only: <span class="pill pill-ready">Compliant</span> or
+            <span class="pill pill-error">Non-Compliant</span> with the score percentage,
+            based on <code>taskJobData.moderationOutputJson.summary</code>.
+            Expand to see per-policy results when multiple policies were evaluated.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Actions</strong></td>
+          <td>
+            <span class="pill pill-ready" style="background:#e8f0fe;color:#006EFA">Review</span>
+            button appears for <span class="pill pill-ready">Ready</span> moderation jobs.
+            Clicking it opens the Review tab for that entry.
+          </td>
+        </tr>
+      </table>
+
+      <h3 id="order-job">Ordering a new moderation job</h3>
+      <p>Click the <strong>+ Order Job</strong> button in the toolbar to open the order form.</p>
+      <ol class="steps">
+        <li>
+          <strong>Catalog Item</strong> — shown only if your account has multiple moderation
+          catalog items (<code>KalturaVendorModerationCatalogItem</code>). If there is only one,
+          it is selected automatically.
+        </li>
+        <li>
+          <strong>Entry</strong> — browse or search the list of video entries from your account.
+          Type a name or entry ID in the search box and press <kbd>Enter</kbd> or click
+          <strong>Search</strong>. Click a row to select the entry.
+        </li>
+        <li>
+          <strong>Reach Profile</strong> — select the reach profile (policy configuration) to apply.
+          Loaded automatically from <code>reachProfile.list</code>.
+        </li>
+        <li>
+          <strong>Policy ID</strong> — enter the numeric ID of the moderation policy to run.
+          This is set as <code>taskJobData.policyIds</code> on the submitted task
+          (<code>KalturaModerationVendorTaskData</code>).
+        </li>
+        <li>Click <strong>Submit Order</strong>. On success the modal closes and the task list refreshes automatically.</li>
+      </ol>
+
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>
+          Ordering a job requires your account to have at least one active moderation catalog item
+          (<code>vendorCatalogItem.list</code> with <code>serviceFeatureEqual=15</code>).
+          Contact your Kaltura account team if none are available.
+        </div>
+      </div>
+
+      <h3 id="task-status">Status reference</h3>
+      <table class="field-table">
+        <tr><th>Value</th><th>Label</th><th>Meaning</th></tr>
+        <tr><td><code>1</code></td><td><span class="pill pill-pending">Pending</span></td><td>Job created but not yet picked up by the vendor.</td></tr>
+        <tr><td><code>2</code></td><td><span class="pill pill-ready">Ready</span></td><td>Job completed successfully. Results are available.</td></tr>
+        <tr><td><code>3</code></td><td><span class="pill pill-process">Processing</span></td><td>Job is actively being processed by the vendor.</td></tr>
+        <tr><td><code>4</code></td><td><span class="pill pill-pending">Pending Moderation</span></td><td>Awaiting human review before processing.</td></tr>
+        <tr><td><code>5</code></td><td><span class="pill pill-error">Rejected</span></td><td>Job was rejected (e.g. unsupported content). Hover for details.</td></tr>
+        <tr><td><code>6</code></td><td><span class="pill pill-error">Error</span></td><td>Job failed with an error. Hover over the status for the error description.</td></tr>
+        <tr><td><code>7</code></td><td><span class="pill pill-pending">Aborted</span></td><td>Job was cancelled.</td></tr>
+        <tr><td><code>8</code></td><td><span class="pill pill-pending">Pending Entry Ready</span></td><td>Waiting for the source entry to finish transcoding.</td></tr>
+        <tr><td><code>9</code></td><td><span class="pill pill-pending">Scheduled</span></td><td>Job is scheduled for future processing.</td></tr>
+      </table>
+    </section>
+
+    <!-- ═══ 5. Review ═══ -->
+    <section class="section" id="tab-review">
+      <h2><span class="num">5</span> Review</h2>
+      <p>
+        The Review tab opens when you click a <strong>Review</strong> button on a
+        <span class="pill pill-ready">Ready</span> moderation task. It provides a split view:
+        the moderation report on the left and the Kaltura Player on the right.
+      </p>
+
+      <h3 id="review-results">Moderation results panel</h3>
+      <p>The left panel shows three sections:</p>
+
+      <table class="field-table">
+        <tr><th>Section</th><th>Description</th></tr>
+        <tr>
+          <td><strong>Job Details</strong></td>
+          <td>Task ID, Entry ID (with KMC link), status, service feature, vendor partner, and creation date.</td>
+        </tr>
+        <tr>
+          <td><strong>Moderation Results</strong></td>
+          <td>
+            <p style="margin-bottom:8px">
+              Parsed from <code>taskJobData.moderationOutputJson</code>.
+              Shows the policy number, total violation count, and a <em>Complies / Does Not Comply</em> badge.
+            </p>
+            <p style="margin-bottom:8px">
+              Violations are grouped by <strong>rule</strong>. Each rule is a collapsible row
+              (collapsed by default) — click to expand and see every individual violation
+              with its <em>reason</em> label and <em>timestamp button</em>.
+            </p>
+            <p>
+              A coloured dot indicates severity: 🔴 high (≥ 80), 🟡 medium (≥ 60), 🟢 low.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Summary</strong></td>
+          <td>Per-policy score and compliance result from <code>summary[policyId].comply</code>.</td>
+        </tr>
+      </table>
+
+      <h3 id="review-player">Video player</h3>
+      <p>
+        The right panel embeds the Kaltura Player v7 using the <code>KalturaPlayer.setup()</code>
+        JavaScript API (not an iframe). This gives direct programmatic access for timestamp seeking.
+        The player loads automatically with autoplay enabled when a review opens.
+      </p>
+      <p>
+        If no <strong>uiconf ID</strong> was provided in the header, an inline input appears inside the
+        player area — enter the ID there and click <strong>Load Player</strong>.
+      </p>
+
+      <h3 id="seeking">Timestamp links</h3>
+      <p>
+        Every violation row in an expanded rule section shows a timestamp button
+        (e.g. <code>01:23</code>). Clicking it calls
+        <code>player.currentTime = seconds; player.play()</code> — the player immediately
+        seeks to that position and starts playing, so you can watch the flagged scene in context.
+      </p>
+
+      <div class="callout tip">
+        <span class="callout-icon">💡</span>
+        <div>
+          The raw <code>moderationOutputJson</code> is always available at the bottom of the results
+          panel as a collapsible <strong>Raw JSON</strong> section — useful for debugging or
+          verifying the exact vendor output.
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 6. Policies ═══ -->
+    <section class="section" id="tab-policies">
+      <h2><span class="num">6</span> Policies tab</h2>
+      <p>
+        The Policies tab is a placeholder for a planned feature that will provide full CRUD management
+        for Kaltura Reach moderation policies and their rules. It is not yet implemented.
+      </p>
+      <p>Planned capabilities include:</p>
+      <ul style="padding-left:20px;margin:8px 0">
+        <li>List all moderation reach profiles and policies</li>
+        <li>Create and edit moderation policies (categories, thresholds, automated actions)</li>
+        <li>Delete policies</li>
+        <li>Associate policies with entries or categories</li>
+      </ul>
+    </section>
+
+    <!-- ═══ 7. Key concepts ═══ -->
+    <section class="section" id="concepts">
+      <h2><span class="num">7</span> Key concepts</h2>
+
+      <h3>Kaltura Reach</h3>
+      <p>
+        <strong>Kaltura Reach</strong> is a managed services platform that connects Kaltura with
+        third-party AI/ML vendors for automated media enrichment — including transcription,
+        translation, and <em>content moderation</em>. Jobs are represented as
+        <code>KalturaEntryVendorTask</code> objects.
+      </p>
+
+      <h3>Vendor Catalog Item (<code>KalturaVendorModerationCatalogItem</code>)</h3>
+      <p>
+        A catalog item defines a specific vendor service offering — for example
+        <em>"AI moderation by vendor X"</em>. It has a <code>serviceFeature</code>
+        (e.g. <code>15 = MODERATION</code>) and links to a vendor partner.
+        You can only order jobs for catalog items that are active on your account.
+      </p>
+
+      <h3>Reach Profile (<code>KalturaReachProfile</code>)</h3>
+      <p>
+        A reach profile is an account-level configuration that defines settings such as
+        default vendors, credit allocation, and language preferences.
+        When ordering a job, you select a reach profile to govern how the task is processed.
+        Reach profiles are <em>different</em> from moderation policies.
+      </p>
+
+      <h3>Policy ID</h3>
+      <p>
+        A moderation <em>policy</em> defines the ruleset applied during content analysis
+        (which categories to detect, severity thresholds, etc.). Policy IDs are set on the
+        task via <code>taskJobData.policyIds</code> using <code>KalturaModerationVendorTaskData</code>.
+        The results in <code>moderationOutputJson.summary</code> are keyed by policy ID.
+      </p>
+
+      <h3>Moderation Output JSON</h3>
+      <p>
+        When a moderation job completes, the vendor report is stored in
+        <code>entryVendorTask.taskJobData.moderationOutputJson</code>.
+        Its top-level structure is:
+      </p>
+      <table class="field-table">
+        <tr><th>Field</th><th>Description</th></tr>
+        <tr><td><code>violations[]</code></td><td>Array of individual detections. Each has <code>id</code> (rule ID), <code>rule</code> (description), <code>reason</code>, <code>severity</code> (0–100), and <code>start_time</code> (seconds).</td></tr>
+        <tr><td><code>summary</code></td><td>Object keyed by policy ID. Each value is <code>{ score: number, comply: boolean }</code>. <code>comply: false</code> means the content violates the policy.</td></tr>
+      </table>
+    </section>
+
+    <!-- ═══ 8. Troubleshooting ═══ -->
+    <section class="section" id="troubleshooting">
+      <h2><span class="num">8</span> Troubleshooting</h2>
+
+      <table class="field-table">
+        <tr><th>Symptom</th><th>Likely cause &amp; fix</th></tr>
+        <tr>
+          <td><strong>Connection fails / "KalturaAPIException"</strong></td>
+          <td>The KS may be expired or have insufficient privileges. Generate a fresh KS with admin-level access.</td>
+        </tr>
+        <tr>
+          <td><strong>Task list is empty</strong></td>
+          <td>
+            The time-window filter defaults to <em>Last 24 hours</em>. Widen it to
+            <em>Last 30 days</em> or <em>All time</em>. Also check that the
+            <em>Service Feature</em> filter matches your jobs.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>"No moderation catalog items found"</strong></td>
+          <td>
+            Your account has no active moderation catalog items
+            (<code>vendorCatalogItem.list</code> with <code>serviceFeatureEqual=15</code> returns empty).
+            Contact your Kaltura account team to have Reach Moderation enabled.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Player does not appear</strong></td>
+          <td>
+            A Player uiconf ID is required. Enter it in the header bar or in the inline
+            prompt inside the player area on the Review tab. Ensure the uiconf ID is a
+            <em>Player v7 (PlayKit)</em> configuration, not a legacy kWidget player.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Timestamp seek does not work</strong></td>
+          <td>
+            Ensure the player has fully loaded before clicking a timestamp. If the player
+            shows a loading spinner, wait for it to finish buffering.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Moderation results show "—" (no data)</strong></td>
+          <td>
+            The task must have status <span class="pill pill-ready">Ready</span> and a non-empty
+            <code>taskJobData.moderationOutputJson</code>. If the task completed but the field is empty,
+            the vendor may not have returned a report — check with your Kaltura account team.
+          </td>
+        </tr>
+        <tr>
+          <td><strong>CORS errors in browser console</strong></td>
+          <td>
+            The app must be served via HTTP (not opened as a <code>file://</code> URL).
+            Run a local server as described in the Installation section.
+          </td>
+        </tr>
+      </table>
+
+      <div class="callout info">
+        <span class="callout-icon">ℹ️</span>
+        <div>
+          Open your browser's developer console (<kbd>F12</kbd>) for detailed API error messages.
+          All Kaltura API errors include a <code>code</code> and <code>message</code> field
+          that pinpoints the issue.
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+</body>
+</html>
