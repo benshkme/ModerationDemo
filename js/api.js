@@ -158,6 +158,13 @@ const KalturaAPI = (() => {
     return call('baseentry', 'get', { entryId });
   }
 
+  // reach_reachProfile.list — list available reach profiles
+  async function reachProfileList() {
+    return call('reach_reachProfile', 'list', {
+      pager: { objectType: 'KalturaFilterPager', pageSize: 200, pageIndex: 1 },
+    });
+  }
+
   // baseEntry.list — list video entries (mediaType=1), optional freeText search
   async function entryList({ search = '', pageIndex = 1, pageSize = 30 } = {}) {
     const params = {
@@ -263,6 +270,7 @@ const KalturaAPI = (() => {
     attachmentGetUrl,
     attachmentList,
     entryGet,
+    reachProfileList,
     entryList,
     vendorTaskAdd,
     getPartnerId,

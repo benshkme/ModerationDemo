@@ -396,8 +396,15 @@ const TasksTab = (() => {
           </div>
 
           <div class="form-group">
-            <label class="form-label">Policy (Reach Profile ID)</label>
-            <input type="text" id="modal-policy-input" class="form-input" placeholder="Enter reach profile / policy ID">
+            <label class="form-label">Reach Profile</label>
+            <select class="form-input" id="modal-reach-select">
+              <option value="">Loading reach profiles…</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Policy ID</label>
+            <input type="text" id="modal-policy-input" class="form-input" placeholder="Enter policy ID">
           </div>
         </div>
         <div class="modal-footer">
@@ -438,22 +445,42 @@ const TasksTab = (() => {
          <code style="font-size:11px;margin-left:4px">${escapeHtml(item.dataset.id)}</code>`;
     });
 
+    // Load reach profiles into the dropdown
+    KalturaAPI.reachProfileList().then(result => {
+      const profiles = result?.objects || [];
+      const sel = document.getElementById('modal-reach-select');
+      if (!sel) return;
+      if (!profiles.length) {
+        sel.innerHTML = '<option value="">No reach profiles found</option>';
+        return;
+      }
+      sel.innerHTML = profiles.map(p =>
+        `<option value="${escapeHtml(String(p.id))}">${escapeHtml(p.name || `Profile ${p.id}`)} (ID: ${escapeHtml(String(p.id))})</option>`
+      ).join('');
+    }).catch(() => {
+      const sel = document.getElementById('modal-reach-select');
+      if (sel) sel.innerHTML = '<option value="">Failed to load reach profiles</option>';
+    });
+
     // Initial load
     loadEntriesForModal('');
 
     // Submit
     document.getElementById('modal-submit-btn').addEventListener('click', async () => {
       const catalogItemId = document.getElementById('modal-catalog-select').value;
-      const policyId      = document.getElementById('modal-policy-input').value.trim();
+      const reachProfileId = document.getElementById('modal-reach-select').value;
+      const policyId       = document.getElementById('modal-policy-input').value.trim();
+
       if (!selectedEntryId) { showModalAlert('Please select an entry.'); return; }
-      if (!policyId)        { showModalAlert('Please enter a policy/reach profile ID.'); return; }
+      if (!reachProfileId)  { showModalAlert('Please select a reach profile.'); return; }
+      if (!policyId)        { showModalAlert('Please enter a policy ID.'); return; }
 
       const btn = document.getElementById('modal-submit-btn');
       btn.disabled = true;
       btn.textContent = 'Submitting…';
 
       try {
-        await KalturaAPI.vendorTaskAdd({ entryId: selectedEntryId, catalogItemId, reachProfileId: policyId });
+        await KalturaAPI.vendorTaskAdd({ entryId: selectedEntryId, catalogItemId, reachProfileId });
         closeModal();
         loadTasks(1);
       } catch (err) {
