@@ -187,13 +187,19 @@ const KalturaAPI = (() => {
   }
 
   // reach_entryVendorTask.add — order a new vendor task
-  async function vendorTaskAdd({ entryId, catalogItemId, reachProfileId } = {}) {
+  async function vendorTaskAdd({ entryId, catalogItemId, reachProfileId, policyIds } = {}) {
     const task = {
       objectType: 'KalturaEntryVendorTask',
       entryId,
       catalogItemId,
     };
     if (reachProfileId) task.reachProfileId = reachProfileId;
+    if (policyIds) {
+      task.taskJobData = {
+        objectType: 'KalturaModerationVendorTaskData',
+        policyIds,
+      };
+    }
     return call('reach_entryVendorTask', 'add', { entryVendorTask: task });
   }
 

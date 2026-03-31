@@ -480,7 +480,7 @@ const TasksTab = (() => {
       btn.textContent = 'Submitting…';
 
       try {
-        await KalturaAPI.vendorTaskAdd({ entryId: selectedEntryId, catalogItemId, reachProfileId });
+        await KalturaAPI.vendorTaskAdd({ entryId: selectedEntryId, catalogItemId, reachProfileId, policyIds: policyId });
         closeModal();
         loadTasks(1);
       } catch (err) {
